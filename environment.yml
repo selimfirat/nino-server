@@ -11,5 +11,7 @@ dependencies:
   - vs2015_runtime=14.0.25420=0
   - wheel=0.32.1=py37_0
   - wincertstore=0.2=py37_1002
+  - pip:
+    - pytesseract
 prefix: C:\Users\Selim\Anaconda3\envs\nino
 
