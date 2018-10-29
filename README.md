@@ -3,10 +3,16 @@
 
 ### Requirements
 * Python 3.7
-* Anaconda
 
 ### Installation
-* `conda env create -f environment.yml`
+* `pip install -r requirements.txt`
+
+### Running Server
+Local
+* `python manage.py runserver`
+
+Remote (i.e. Google Cloud)
+* `sudo env PATH="$PATH" python manage.py runserver 0.0.0.0:8000`
 
 ### Migrating Database
 Migrating is needed after modifying the models etc.

@@ -1,26 +1,17 @@
-from django.core.validators import RegexValidator
 from rest_framework import serializers
-from nino.api.models import Category, Note, User
-
+from .models import Note
+from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
-
-    def phone_exists(self, phone_number):
-         return self.Meta.model.objects.filter(phone_number=phone_number).exists()
-
-    def verify_code(self, phone_number, verification_code):
-        return self.Meta.model.objects.filter(phone_number=phone_number, verification_code=verification_code).exists()
+    notes = serializers.PrimaryKeyRelatedField(many=True, queryset=Note.objects.all())
 
     class Meta:
         model = User
-        fields = ("id", 'created', 'name', 'phone_number', "verification_code")
-
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = ("created", "name")
+        fields = ('id', 'username', 'notes')
 
 class NoteSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+
     class Meta:
         model = Note
-        fields = ("created", "title")
+        fields = ('id', "owner", 'name', 'image')

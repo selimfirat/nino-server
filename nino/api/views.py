@@ -1,64 +1,41 @@
-import hashlib
+from rest_framework import status, permissions
+from rest_framework import mixins, generics
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from .models import Note
+from .serializers import NoteSerializer, UserSerializer
+from django.contrib.auth.models import User
+from rest_framework import permissions
+from .permissions import IsOwnerOrReadOnly
 
-import time
-from django.shortcuts import render
-from rest_framework import viewsets, mixins, generics, status
-from rest_framework.authtoken.models import Token
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
-from nino.api.models import User, Note, Category
-from nino.api.serializers import UserSerializer, NoteSerializer, CategorySerializer
-
-
-class NoteList(generics.ListCreateAPIView):
-    queryset = Note.objects.all()
-    serializer_class = NoteSerializer
-
-class UserList(generics.ListCreateAPIView):
+class UserList(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-class NoteDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Note.objects.all()
+
+class UserDetail(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+class NoteList(mixins.ListModelMixin,
+                     mixins.CreateModelMixin,
+                     generics.GenericAPIView):
+    """
+     List all notes, or create a note
+    """
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
+                          IsOwnerOrReadOnly,)
+    parser_classes = (JSONParser, MultiPartParser, FormParser,)
+
     serializer_class = NoteSerializer
 
-class CategoryList(generics.ListCreateAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    def get_queryset(self, *args, **kwargs):
+        return Note.objects.all().filter(owner=self.request.user)
 
-class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
-class UserSendVerificationCodeView(APIView):
-
-    def post(self, request, format=None):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            if serializer.phone_exists(serializer.validated_data["phone_number"]):
-                user = User.objects.get(phone_number=serializer.validated_data["phone_number"])
-                serializer = UserSerializer(user, serializer)
-
-            serializer.validated_data["verification_code"] = hashlib.shake_256(str(time.time()).encode("utf-8")).hexdigest(length=6).upper()
-            # TODO: send verification code as SMS
-
-            serializer.save()
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class UserVerifyCodeView(APIView):
-
-    def post(self, request, format=None):
-        serializer = UserSerializer(data=request.data)
-
-        if serializer.verify_code(phone_number=serializer.initial_data["phone_number"], verification_code=serializer.initial_data["verification_code"]):
-            user = User.objects.get(phone_number=serializer.initial_data["phone_number"])
-            token = Token.objects.create(user=user)
-            return Response(dict(auth_token=token.key), status=status.HTTP_200_OK)
-
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)

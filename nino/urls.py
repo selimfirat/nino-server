@@ -19,9 +19,8 @@ from django.urls import path, include
 from rest_framework import routers
 from nino.api import views
 from django.contrib.auth.admin import UserAdmin
-from nino.api.models import User
-
-
+from django.conf import settings
+from django.conf.urls.static import static
 
 router = routers.DefaultRouter()
 
@@ -32,11 +31,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls')),
-    url(r'auth/verification_code', views.UserSendVerificationCodeView.as_view()),
-    url(r'auth/verify', views.UserVerifyCodeView.as_view()),
-    url(r'users/', views.UserList.as_view()),
-    url(r'notes/', views.NoteList.as_view()),
-    url(r'note/<int:pk>/', views.NoteDetail.as_view()),
-    url(r'categories/', views.CategoryList.as_view()),
-    url(r'category/<int:pk>/', views.CategoryDetail.as_view())
-]
+    url(r'^api/notes/$', views.NoteList.as_view()),
+    url(r'^api/users/', views.UserList.as_view()),
+    url(r'^api/users/<int:pk>/', views.UserDetail.as_view()),
+
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

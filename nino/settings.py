@@ -25,7 +25,7 @@ SECRET_KEY = 'h5hw4heai!@p+9*7thnhghq@$r+9sh@-8xpohg_!_qxz7of27x'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -103,8 +103,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
 
 REST_FRAMEWORK = {
 }
-
-AUTH_USER_MODEL = "api.User"

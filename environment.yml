@@ -5,11 +5,7 @@ channels:
 dependencies:
   - certifi=2018.10.15=py37_1000
   - pip=18.1=py37_1000
-  - python=3.7.0=hc182675_1005
   - setuptools=40.4.3=py37_0
-  - vc=14=0
-  - vs2015_runtime=14.0.25420=0
   - wheel=0.32.1=py37_0
-  - wincertstore=0.2=py37_1002
 prefix: C:\Users\Selim\Anaconda3\envs\nino
 
