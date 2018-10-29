@@ -21,7 +21,7 @@ from nino.api import views
 from django.contrib.auth.admin import UserAdmin
 from django.conf import settings
 from django.conf.urls.static import static
-from .api.views import login
+from rest_framework.documentation import include_docs_urls
 
 router = routers.DefaultRouter()
 
@@ -37,4 +37,6 @@ urlpatterns = [
 
     url(r'^api/auth/', include('djoser.urls')),
     url(r'^api/auth/', include('djoser.urls.authtoken')),
+    url(r'^api/docs/', include_docs_urls(title='Nino API Documentation')),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

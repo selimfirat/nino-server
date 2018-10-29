@@ -2,7 +2,7 @@ from rest_framework import status, permissions
 from rest_framework import mixins, generics
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from .models import Note
-from .serializers import NoteSerializer, UserSerializer
+from .serializers import NoteSerializer
 from django.contrib.auth.models import User
 from rest_framework import permissions
 from rest_framework.response import Response
@@ -16,23 +16,6 @@ from rest_framework.status import (
     HTTP_404_NOT_FOUND,
     HTTP_200_OK
 )
-
-@csrf_exempt
-@api_view(["POST"])
-@permission_classes((AllowAny,))
-def login(request):
-    username = request.data.get("username")
-    password = request.data.get("password")
-    if username is None or password is None:
-        return Response({'error': 'Please provide both username and password'},
-                        status=HTTP_400_BAD_REQUEST)
-    user = authenticate(username=username, password=password)
-    if not user:
-        return Response({'error': 'Invalid Credentials'},
-                        status=HTTP_404_NOT_FOUND)
-    token, _ = Token.objects.get_or_create(user=user)
-    return Response({'token': token.key},
-                    status=HTTP_200_OK)
 
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,

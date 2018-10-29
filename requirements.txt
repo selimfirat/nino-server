@@ -4,3 +4,5 @@ markdown
 django-filter
 Pillow
 djoser
+coreapi
+pygments
