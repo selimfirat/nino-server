@@ -39,7 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'nino.api.apps.ApiConfig'
+    'nino.api.apps.ApiConfig',
+    'djoser',
+
 ]
 
 MIDDLEWARE = [
@@ -106,4 +108,9 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+
+    )
 }

@@ -5,16 +5,34 @@ from .models import Note
 from .serializers import NoteSerializer, UserSerializer
 from django.contrib.auth.models import User
 from rest_framework import permissions
-from .permissions import IsOwnerOrReadOnly
+from rest_framework.response import Response
+from django.contrib.auth import authenticate
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_404_NOT_FOUND,
+    HTTP_200_OK
+)
 
-class UserList(generics.ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-
-class UserDetail(generics.RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes((AllowAny,))
+def login(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+    if username is None or password is None:
+        return Response({'error': 'Please provide both username and password'},
+                        status=HTTP_400_BAD_REQUEST)
+    user = authenticate(username=username, password=password)
+    if not user:
+        return Response({'error': 'Invalid Credentials'},
+                        status=HTTP_404_NOT_FOUND)
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({'token': token.key},
+                    status=HTTP_200_OK)
 
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
@@ -22,8 +40,7 @@ class NoteList(mixins.ListModelMixin,
     """
      List all notes, or create a note
     """
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
-                          IsOwnerOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated, )
     parser_classes = (JSONParser, MultiPartParser, FormParser,)
 
     serializer_class = NoteSerializer
@@ -39,3 +56,37 @@ class NoteList(mixins.ListModelMixin,
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+class NoteDetail(mixins.RetrieveModelMixin,
+                    mixins.UpdateModelMixin,
+                    mixins.DestroyModelMixin,
+                    generics.GenericAPIView):
+    """
+    Retrieve, update or delete a note instance.
+    """
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = NoteSerializer
+
+    def get_object(self, pk):
+        try:
+            return Note.objects.filter(owner=self.request.user).get(pk=pk)
+        except Note.DoesNotExist:
+            raise
+
+    def get(self, request, pk, format=None):
+        snippet = self.get_object(pk)
+        serializer = NoteSerializer(snippet)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        note = self.get_object(pk)
+        serializer = NoteSerializer(note, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        note = self.get_object(pk)
+        note.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

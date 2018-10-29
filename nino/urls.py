@@ -21,6 +21,7 @@ from nino.api import views
 from django.contrib.auth.admin import UserAdmin
 from django.conf import settings
 from django.conf.urls.static import static
+from .api.views import login
 
 router = routers.DefaultRouter()
 
@@ -31,8 +32,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls')),
-    url(r'^api/notes/$', views.NoteList.as_view()),
-    url(r'^api/users/', views.UserList.as_view()),
-    url(r'^api/users/<int:pk>/', views.UserDetail.as_view()),
+    path('api/notes/', views.NoteList.as_view()),
+    path('api/notes/<int:pk>/', views.NoteDetail.as_view()),
 
+    url(r'^api/auth/', include('djoser.urls')),
+    url(r'^api/auth/', include('djoser.urls.authtoken')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
