@@ -1,6 +1,6 @@
-from dataset import *
+# Samples from im2latex
 
-# samples from im2latex
+from dataset import *
 
 class EqnSample(TextSample):
     def __init__(self, path, fname, latex):
