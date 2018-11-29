@@ -10,12 +10,13 @@ class TextSample(Sample):
     def __init__(self, path, fname, text):
         Sample.__init__(self, path, fname)
         self.text = text
-        # self.bboxes = [] # TODO single box
+        # self.bboxes = [] # TODO single box, or possibly sets of lines
 
 # may store samples of words as bboxes or samples with single box
 # or simply not involve boxes for now
-class WordSample(TextSample):
+class WordSample(TextSample): # does not include image itself, only path to image, ground truth and other metadata
     def __init__(self, path, fname, text, stat, thres, x, y, w, h): # imgname, bbox, line):
+        'For images of individual words listed in IAM'
         TextSample.__init__(self, path, fname, text)
         self.stat = stat
         self.thres = int(thres)
@@ -23,13 +24,13 @@ class WordSample(TextSample):
         self.y = y = int(y)
         self.w = w = int(w)
         self.h = h = int(h)
-        self.bbox = Rect(x,y,x+w,y+h)
-        # self.imgname = imgname # name of parent image
-        # self.bbox = bbox # bbox in parent image
-        # self.line = line
+        self.bbox = Rect(x,y,x+w,y+h) # bbox in parent image
+        # self.imgname = imgname # name of parent image (accessible via fname or dataset)
+        # self.line = line # which line it belongs to in parent image
 
 class LineSample(TextSample):
     def __init__(self, path, fname, tokens, stat, thres, comps, x, y, w, h): # imgname, bbox, line):
+        'For images of lines of text listed in IAM'
         TextSample.__init__(self, path, fname, tokens)
         self.stat = stat
         self.thres = int(thres)
@@ -43,9 +44,20 @@ class LineSample(TextSample):
         # self.bbox = bbox # bbox in parent image
         # self.line = line
 
-class IAMDataset(Dataset): # generalize to Dataset class
+class IAMDataset(Dataset):
     def __init__(self, datatype, topdir, skip_err=True, msb=True, tabulate=True, sort=True):
+        '''
+        Dataset subclass for the IAM handwritten text dataset
+        datatype: the specific type of samples the dataset is to be built up from {'forms', 'lines', 'sentences', 'words'}
+        topdir: directory the complete IAM dataset is stored in
+        skip_err: whether to skip samples marked 'err' in the index (True)
+        '''
         super(IAMDataset, self).__init__(topdir, msb, tabulate, sort)
+        
+        # store samples in tree or list sorted lexicographically, or maybe multidim array
+        # to each sample attach bboxes first indexed by line perhaps
+        # maybe store preprocessed binary images in bboxes
+        # for training words, each image will be a single word
         
         # assert datatype in ['forms', 'lines', 'sentences', 'words'] # TODO
         assert datatype in ['lines', 'words']
@@ -58,15 +70,12 @@ class IAMDataset(Dataset): # generalize to Dataset class
             # scan each line
             for line in f:
                 func(line, skip_err)
-                # store samples in tree or list sorted lexicographically, or maybe multidim array
-                # to each sample attach bboxes first indexed by line perhaps
-                # maybe store preprocessed binary images in bboxes
-                # for training words, each image will be a single word
         
         # postprocess sample set, sort keys and collapse into list(s) or nparray for better iteration
         self.sort_samples(msb, tabulate, sort)
     
     def word_sample(self, line, skip_err=True):
+        'Process line from index as representing a word sample'
         # line format: 'path1-path2-path3-line stat thres x y w h tag word'
         try:
             [fname, stat, thres, x, y, w, h, tag, word] = line.split(' ')
@@ -87,6 +96,7 @@ class IAMDataset(Dataset): # generalize to Dataset class
         self.add_sample(sam, fpaths)
     
     def line_sample(self, line, skip_err=True):
+        'Process line from index as representing a line sample'
         # line format: path1-path2-path3 stat thres comps x y w h tokens
         if line[0] == '#': # comment line
             return 

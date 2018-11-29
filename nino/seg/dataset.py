@@ -1,3 +1,5 @@
+# General classes for samples and datasets to use for training
+
 import numpy as np
 import bisect
 
@@ -5,9 +7,10 @@ from bbox import Rect
 
 class Sample:
     def __init__(self, path, fname):
+        'Placeholder class storing metadata about a sample'
         self.path = path
         self.fname = fname
-        # self.bboxes = [] # stored in csv
+        # self.bboxes = [] # stored in csv?
     def __repr__(self):
         return 'Sample(%s)' % self.fname.__repr__()
     # possibly a load method, using cv2 etc.
@@ -17,8 +20,8 @@ class Dataset:
         '''
         General dataset class maintaining sample filenames in nested dictionary, multidim table or sorted list
         topdir: top directory of dataset
-        msb: whether to sort data msb first (lexicographically) or reverse (may be better for randomization)
-        tabulate: whether to create multidimensional array samtabl to store samples
+        msb: whether to sort data msb first (lexicographically) or reverse (may be better for randomization) [y0?]
+        tabulate: whether to create multidimensional numpy array samtabl to store samples
         sort: whether to collect all samples in list sorted lexicographically
         '''
         if topdir[-1] == '/':
@@ -28,6 +31,9 @@ class Dataset:
         self.msb = msb
         self.tabulate = tabulate
         self.sort = sort
+        
+        # Subclasses should fill in samples here, then call sort_samples
+        # Maybe create another method for that, and call it here?
     
     def init_samples(self):
         self.samples = {}
@@ -62,7 +68,7 @@ class Dataset:
     
     def sort_samples(self, msb=True, tabulate=True, sort=True):
         'Generate table or list from the nested dictionary of samples.'
-        if tabulate or sort:
+        if tabulate:
             self.samtabl = self.sample_table()
         if sort:
             self.samlist = self.sample_list(msb)
@@ -124,11 +130,10 @@ class Dataset:
     
     def __iter__(self):
         if self.samlist:
-            for s in self.samlist:
-                yield s # TODO open image, yield BBox
+            for s in self.samlist: # for some reason yield all didn't work
+                yield s # open image, yield BBox?
         
         # traverse dictionary lexicographically
-        # for training, it may be useful to sort backwards to get even batches
         def gen(samples):
             if not isinstance(samples, dict):
                 yield samples

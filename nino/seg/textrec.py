@@ -1,3 +1,6 @@
+# Reads image marked as text and returns (annotates?) the text written in it
+# Should receive a list of lines, identified as text, possibly straightened or binarized
+
 import numpy as np
 import cv2
 import torch
@@ -33,15 +36,11 @@ class TextRecognizer:
         if path is not None:
             self.load(path)
     
-    def transform(self, seg):
+    def transform(self, lines):
         '''
-        Given a segment of text, read it line by line and store the text obtained in the segment.
-        seg: text segment
+        Given lines of text, infer and store the text written in each line.
+        lines: iterable of lines
         '''
-        # obtain image for segment
-        
-        # straighten image, break into lines (maybe before calling method, in preprocessor)
-        
         # resize each line, collect into batch(es) of equal length
         
         # call infer on batch(es), either store returned list directly as lines or concatenate them in some way
