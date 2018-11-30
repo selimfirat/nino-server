@@ -31,7 +31,7 @@ class WordSample(TextSample): # does not include image itself, only path to imag
 class LineSample(TextSample):
     def __init__(self, path, fname, tokens, stat, thres, comps, x, y, w, h): # imgname, bbox, line):
         'For images of lines of text listed in IAM'
-        TextSample.__init__(self, path, fname, tokens)
+        TextSample.__init__(self, path, fname, ' '.join(tokens))
         self.stat = stat
         self.thres = int(thres)
         self.comps = int(comps)
@@ -40,6 +40,7 @@ class LineSample(TextSample):
         self.w = w = int(w)
         self.h = h = int(h)
         self.bbox = Rect(x,y,x+w,y+h)
+        self.tokens = tokens
         # self.imgname = imgname # name of parent image
         # self.bbox = bbox # bbox in parent image
         # self.line = line

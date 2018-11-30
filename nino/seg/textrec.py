@@ -12,21 +12,31 @@ import editdistance as ed
 
 import textdataset as ds
 import textprep as pr
+from textenc import *
 
 class TextRecognizer:
-    def __init__(self, nh=256, ncl=27, lr=1e-3, par=True, path=None):
+    encodings = {'all': Encoding,
+                 'lower': LowerEncoding, 
+                 'alpha': AlphaEncoding,
+                 'lowerspace': LowerSpaceEncoding,
+                 'alphaspace': AlphaSpaceEncoding}
+    
+    def __init__(self, nh=256, encoding=None, lr=1e-3, par=True, path=None):
         '''
         Module to recognize written text in segments.
         nh: number of hidden states for LSTM (256)
-        ncl: number of classes for output (27)
+        encoding: which range of characters to encode ['lower', 'alpha', 'lowerspace', 'alphaspace', 'all']
         lr: learning rate for Adam (1e-3)
         par: whether to use multiple cores to execute model (True)
         path: file to load pretrained model from, if provided (None)
         '''
-        self.nh = nh
-        self.ncl = ncl
+        if encoding is None:
+            encoding = LowerEncoding
+        else:
+            encoding = TextRecognizer.encodings[encoding]
+        self.encoding = encoding()
         
-        self.rec = TextRecModule(nh, ncl)
+        self.rec = TextRecModule(nh, len(self.encoding) + 1) # for blank character
         if par:
             self.rec = nn.DataParallel(self.rec)
         self.loss = nn.CTCLoss()
@@ -48,11 +58,11 @@ class TextRecognizer:
     
     def encode(self, text):
         'Encode string into array of class numbers.'
-        return [ord(c)-ord('a')+1 if c.isalpha() else 0 for c in text.lower()]
+        return np.array([self.encoding.encode(c) + 1 for c in text])
     
     def decode(self, l):
         'Decode array of class numbers into string.'
-        return ''.join(chr(c+ord('a')-1) for c in l if c != 0)
+        return ''.join(self.encoding.decode(n - 1) for n in l if n != 0)
     
     def load(self, path):
         self.rec.load_state_dict(torch.load(path)) # later add conds for par and otherwise
@@ -113,7 +123,8 @@ class TextRecognizer:
         dists = np.zeros(len(batch.lengths))
         pref = 0 # prefix sum
         for i, l in enumerate(batch.lengths):
-            dists[i] = ed.eval(strs[i], batch.text[pref:pref+l].lower())
+            # text = self.decode(self.encode(batch.text[pref:pref+1]))
+            dists[i] = ed.eval(strs[i], batch.text[pref:pref+1])
             pref += l
         
         return dists.mean()
