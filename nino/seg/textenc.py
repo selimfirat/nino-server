@@ -1,5 +1,9 @@
 # Auxiliary classes representing different encodings of characters into natural numbers
 
+def check(encoding, s):
+    'Eliminate from string any character not handled by given encoding.'
+    return ''.join(encoding.decode(c) for c in map(encoding.encode, s) if c != -1)
+
 class Encoding:
     'Encodes any ASCII character into its 8-bit code'
     def __len__(self):
@@ -37,9 +41,9 @@ class AlphaEncoding(Encoding):
     def encode(self, c):
         return 26*c.isupper() + ord(c.lower()) - ord('a') if c.isalpha() else -1
     def decode(self, n):
-        c = chr(n % 26 + ord('A'))
+        c = chr(n % 26 + ord('a'))
         if n >= 26:
-            c = c.lower()
+            c = c.upper()
         return c
 
 class AlphaSpaceEncoding(Encoding):
@@ -52,8 +56,14 @@ class AlphaSpaceEncoding(Encoding):
     def decode(self, n):
         if n == len(self) - 1:
             return ' '
-        c = chr(n % 26 + ord('A'))
+        c = chr(n % 26 + ord('a'))
         if n >= 26:
-            c = c.lower()
+            c = c.upper()
         return c
     
+encodings = {'all': Encoding,
+             'lower': LowerEncoding, 
+             'alpha': AlphaEncoding,
+             'lowerspace': LowerSpaceEncoding,
+             'alphaspace': AlphaSpaceEncoding}
+

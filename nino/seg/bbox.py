@@ -1,131 +1,132 @@
-import json
+# BBox - segments arranged in hierarchy of children, annotated with text, equations or processed images
+# (e.g. a figure may be denoised, a line may be straightened etc.)
+# Visitors visit this tree of segments in order, processing and annotating each box and possibly creating new children
+# E.g. segmentor receives single box and breaks it down into children text, equation and figure segments,
+# text recognizer visits each text box, processes its image and writes its text
+# the image may also be passed to the visitor through keyword arguments, as well as the parent note
 
+import json
 import numpy as np
 
-class Rect:
-    def __init__(self, x0, y0, x1, y1):
-        if x0 > x1 and x1 != -1: # -1 taken to be right margin
-            x0 = x1
-        if y0 > y1 and y1 != -1:
-            y0 = y1
-        self.x0 = int(x0)
-        self.y0 = int(y0)
-        self.x1 = int(x1)
-        self.y1 = int(y1)
-    
-    def area(self):
-        return (self.x1-self.x0)*(self.y1-self.y0)
-    
-    def __add__(self, other):
-        'Join of two rectangles'
-        if self.area() == 0:
-            return other
-        if other.area() == 0:
-            return self
-        x0 = min([self.x0, other.x0])
-        y0 = min([self.y0, other.y0])
-        x1 = max([self.x1, other.x1]) if -1 not in [self.x1, other.x1] else -1
-        y1 = max([self.y1, other.y1]) if -1 not in [self.y1, other.y1] else -1
-        return Rect(x0, y0, x1, y1)
-    
-    def __mul__(self, other):
-        'Meet of two rectangles'
-        if self.area() == 0:
-            return self
-        if other.area() == 0:
-            return other
-        x0 = max([self.x0, other.x0])
-        y0 = max([self.y0, other.y0])
-        x1 = min([self.x1, other.x1]) if -1 not in [self.x1, other.x1] else max([self.x1, other.x1])
-        y1 = min([self.y1, other.y1]) if -1 not in [self.y1, other.y1] else max([self.y1, other.y1])
-        return Rect(x0, y0, x1, y1)
-    
-    def area_dist(self, other):
-        # area of self + other - self union other - self intersect other
-        # need triangle inequality: (x+z)-x-z <= (x+y)-x-y+(y+z)-y-z
-        # or (x+z) <= (x+y)+(y+z)-2y
-        return (self + other).area() - self.area() - other.area() # + (self * other).area() 
-    
-    def norm(self):
-        'Length of diagonal'
-        return ((self.x1-self.x0)**2 + (self.y1-self.y0)**2)**.5
-    
-    def center(self):
-        xs = np.array([self.x0, self.x1])
-        ys = np.array([self.y0, self.y1])
-        return (xs+ys)/2
-    
-    def max_dist(self, ps):
-        # maximum distance to p=(x,y) [shape n,2]
-        cs = self.argmax_dist(ps)
-        return np.linalg.norm(cs - ps, axis=1)
-    
-    def argmax_dist(self, ps):
-        # corners of max distance to p=(x, y)
-        xs = np.array([self.x0, self.x1])
-        ys = np.array([self.y0, self.y1])
-        xis = np.argmax(np.abs(ps[:,0].reshape(-1,1) - xs), axis=1)
-        yjs = np.argmax(np.abs(ps[:,1].reshape(-1,1) - ys), axis=1)
-        return np.stack([xs[xis], ys[yjs]], axis=1)
-    
-    def __eq__(self, other):
-        return [self.x0, self.y0, self.x1, self.y1] == [other.x0, other.y0, other.x1, other.y1]
-    
-    def __ne__(self, other):
-        return not self == other
-    
-    def __le__(self, other):
-        return (self + other) == other # self contained in other
-    
-    def __lt__(self, other):
-        return self <= other and self != other
-    
-    def __ge__(self, other):
-        return other <= self
-    
-    def __gt__(self, other):
-        return other < self
+from rect import *
+
+# bbox visitor: visits each subclass of bbox, annotates it and possibly returns
+# a note itself may be a bbox perhaps
+class BBoxVisitor:
+    def visit(self, bbox, *args, **kwargs):
+        return bbox.accept(self, *args, **kwargs)
+    def visit_children(self, bbox, *args, **kwargs): # may override this method to update parent after visiting children
+        res = None
+        for b in bbox.children:
+            res = self.visit(b, *args, **kwargs)
+        return res
+    def visit_bbox(self, bbox, *args, **kwargs): # default
+        return self.visit_children(bbox, *args, **kwargs)
+    def visit_note(self, bbox, *args, **kwargs):
+        return self.visit_bbox(bbox, *args, **kwargs)
+    def visit_text(self, bbox, *args, **kwargs):
+        return self.visit_bbox(bbox, *args, **kwargs)
+    def visit_line(self, bbox, *args, **kwargs):
+        return self.visit_bbox(bbox, *args, **kwargs)
+    def visit_word(self, bbox, *args, **kwargs):
+        return self.visit_bbox(bbox, *args, **kwargs)
+    def visit_eqn(self, bbox, *args, **kwargs):
+        return self.visit_bbox(bbox, *args, **kwargs)
+    # etc.
 
 class BBox:
+    'Class representing any segment within a note.'
     class BBoxAnnot:
-        def __init__(self):
-            pass
+        def __init__(self, image=None): # may also store images of the box if it needs further processing
+            self.image = image
         def __add__(self, other):
             return other
         def __radd__(self, other):
-            return other
+            return self + other
     
-    def __init__(self, rect, c=100, annot=None, children=None):
+    def __init__(self, rect, c=100, annot=None, image=None, children=None):
         self.rect = rect
         self.c = int(c)
-        self.annot = annot or BBoxAnnot() # annotation of box e.g. text or equation that implements addition
+        self.annot = annot or BBox.BBoxAnnot(image) # annotation of box e.g. text or equation that implements addition
         self.children = children or []
     
     def area(self):
         return rect.area()
     
+    def add_child(self, child):
+        self.children.append(child)
+        # maybe do some bookkeeping
+    
     def __add__(self, other):
         # smallest box containing both boxes
-        # TODO detect whether rects are added vertically or horizontally
         left, right = (self, other) if self.rect.x0 <= other.rect.x0 else (other, self)
         return BBox(self.rect + other.rect, min([self.c, other.c]), left.annot + right.annot, [left, right])
     
-    def __repr__(self):
-        return 'BBox(%d, %d, %d, %d, %d, %s, %s)' % (self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.c, self.annot, self.children)
-
-class TextBBox(BBox):
-    class TextBBoxAnnot:
-        def __init__(self, text, rect):
-            self.text = text
-            self.rect = rect
-        def __add__(self, other):
-            # determine whether rects differ more in height or in width
-            return TextBBoxAnnot(self.text + ' ' + other.text, self.rect + other.rect)
-        def __str__(self):
-            return self.text
+    # def __repr__(self):
+    #     return 'BBox(%d, %d, %d, %d, %d, %s, %s)' % (self.rect.x0, self.rect.y0, self.rect.x1, self.rect.y1, self.c, self.annot, self.children)
     
-    def __init__(self, rect, c=100, text='', children=None):
-        BBox.__init__(self, rect, c, TextBBoxAnnot(text, rect), children)
+    def accept(self, visitor, *args, **kwargs):
+        return visitor.visit_bbox(self, *args, **kwargs)
+
+class Note(BBox):
+    def __init__(self, image, **kwargs):
+        super(Note, self).__init__(Rect(0,0,-1,-1), image=image)
+    
+    def accept(self, visitor, *args, **kwargs):
+        if 'image' not in kwargs:
+            kwargs['image'] = self.annot.image
+        if 'note' not in kwargs:
+            kwargs['note'] = self
+        return visitor.visit_note(self, *args, **kwargs)
+
+class TextBBox(BBox): # may be broken into lines, which may themselves be composed of words or equations
+    class TextBBoxAnnot(BBox.BBoxAnnot):
+        def __init__(self, text, rect, image=None):
+            super(TextBBox.TextBBoxAnnot, self).__init__(image)
+            self.text = text # iterable of strings
+            self.rect = rect # may also store processed image of box
+        def __add__(self, other):
+            # may by default store list of tokens and concatenate them
+            # then lines may be arranged vertically while words in lines may be arranged horizontally
+            return TextBBox.TextBBoxAnnot(self.text + other.text, self.rect + other.rect)
+        # def __str__(self):
+        #     return '\n'.join(self.text)
+    
+    def __init__(self, rect, c=100, text='', image=None, children=None):
+        super(TextBBox, self).__init__(rect, c, TextBBox.TextBBoxAnnot([text], rect, image), children)
+    
+    def accept(self, visitor, *args, **kwargs):
+        return visitor.visit_text(self, *args, **kwargs)
+
+class LineBBox(TextBBox): # composed of words or inline expressions
+    class LineBBoxAnnot(TextBBox.TextBBoxAnnot):
+        # def __str__(self):
+        #     return ' '.join(self.text)
+        pass
+    
+    def __init__(self, rect, c=100, text='', image=None, children=None):
+        super(LineBBox, self).__init__(rect, c, LineBBox.LineBBoxAnnot([text], rect, image), children)
+    
+    def accept(self, visitor, *args, **kwargs):
+        return visitor.visit_line(self, *args, **kwargs)
+
+class WordBBox(TextBBox): # composed of words or inline expressions
+    class WordBBoxAnnot(TextBBox.TextBBoxAnnot):
+        def __str__(self):
+            return ''.join(self.text)
+    
+    def __init__(self, rect, c=100, text='', image=None, children=None):
+        super(WordBBox, self).__init__(rect, c, WordBBox.WordBBoxAnnot([text], rect, image), children)
+    
+    def accept(self, visitor, *args, **kwargs):
+        return visitor.visit_word(self, *args, **kwargs)
+
+class EqnBBox(BBox): # composed of mathematical expressions that can span multiple lines
+    # TODO
+    def accept(self, visitor, *args, **kwargs):
+        return visitor.visit_eqn(self, *args, **kwargs)
+
+    
 
 # csv may be easier
 class BBoxEncoder(json.JSONEncoder):

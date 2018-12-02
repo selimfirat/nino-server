@@ -1,4 +1,5 @@
 # Samples from im2latex
+# Obtained by calling "make build" on https://github.com/guillaumegenthial/im2latex
 
 from dataset import *
 

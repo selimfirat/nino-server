@@ -10,6 +10,7 @@ import cv2
 import os
 
 import textdataset as ds
+import textenc as enc
 
 class WordTrainSample(ds.TextSample):
     def __init__(self, path, fname, text, lengths):
@@ -19,13 +20,15 @@ class WordTrainSample(ds.TextSample):
 
 class IAMTrainDataset(ds.TrainDataset):
     def __init__(self, iam, subdir, batchsiz, 
-                 create=True, verbose=False, binarize=True, normalize=True,
+                 create=True, encoding='all', verbose=False, binarize=True, normalize=True,
                  msb=True, tabulate=True, sort=True):
         super(IAMTrainDataset, self).__init__(iam, msb, tabulate, sort)
         self.topdir = '%s/%s/%s' % (iam.topdir, subdir, iam.datatype)
         assert iam.sort
         self.batchsiz = batchsiz # max size of each batch
         self.create = create
+        
+        encoding = enc.encodings[encoding]
         
         # first sort iam by rounded width, gather indices in sinds for each batch
         rwidths = np.array(list(map(self.normalize_width, iam.samlist)))
@@ -58,6 +61,10 @@ class IAMTrainDataset(ds.TrainDataset):
                     text = iam.samlist[k].text
                     if text[-1] == '\n':
                         text = text[:-1]
+                    if encoding is not None:
+                        text = enc.check(encoding, text)
+                    if len(text) == 0:
+                        continue
                     texts += text
                     lens.append(len(text))
                     if not create:

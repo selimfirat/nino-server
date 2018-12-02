@@ -1,6 +1,8 @@
 # Reads image marked as text and returns (annotates?) the text written in it
 # Should receive a list of lines, identified as text, possibly straightened or binarized
 
+# Source for model: https://arxiv.org/pdf/1507.05717.pdf
+
 import numpy as np
 import cv2
 import torch
@@ -10,16 +12,13 @@ import torch.autograd as ag
 import tensorflow as tf
 import editdistance as ed
 
+import bbox as bb
 import textdataset as ds
 import textprep as pr
+import imgprep as ip
 from textenc import *
 
-class TextRecognizer:
-    encodings = {'all': Encoding,
-                 'lower': LowerEncoding, 
-                 'alpha': AlphaEncoding,
-                 'lowerspace': LowerSpaceEncoding,
-                 'alphaspace': AlphaSpaceEncoding}
+class TextRecognizer(bb.BBoxVisitor):
     
     def __init__(self, nh=256, encoding=None, lr=1e-3, par=True, path=None):
         '''
@@ -33,7 +32,7 @@ class TextRecognizer:
         if encoding is None:
             encoding = LowerEncoding
         else:
-            encoding = TextRecognizer.encodings[encoding]
+            encoding = encodings[encoding]
         self.encoding = encoding()
         
         self.rec = TextRecModule(nh, len(self.encoding) + 1) # for blank character
@@ -46,15 +45,31 @@ class TextRecognizer:
         if path is not None:
             self.load(path)
     
-    def transform(self, lines):
+    def visit_word(self, word, image=None, binarize=True, normalize=False, straighten=False, *args, **kwargs):
         '''
-        Given lines of text, infer and store the text written in each line.
-        lines: iterable of lines
+        Given a word of text, infer and write the text written in it.
+        Optional kwargs:
+        image: the image of the note to which the line belongs, opened with cv2
+        binarize, normalize, straighten etc.
         '''
-        # resize each line, collect into batch(es) of equal length
+        # obtain image of line, either as attribute or in kwargs
+        image = ip.get_image(word, image)
+        
+        # resize, binarize line etc.
+        # possibly move these to another preprocessing module
+        if binarize:
+            image = ip.binarize(image, otsu=True) # text is supposed to be bimodal
+        if normalize:
+            pass
+        if straighten:
+            pass
+        image = cv2.morphologyEx(image, cv2.MORPH_ERODE, np.ones((3,3), np.uint8))
+        image = ip.rescale(image, h=32)
         
         # call infer on batch(es), either store returned list directly as lines or concatenate them in some way
-        pass
+        text = self.infer(image)
+        # possibly some postprocessing, check spelling and punctuation
+        word.annot.text = text
     
     def encode(self, text):
         'Encode string into array of class numbers.'
@@ -72,6 +87,7 @@ class TextRecognizer:
     
     def infer(self, inputs):
         if len(inputs.shape) == 2:
+            reshape = True
             inputs = inputs.reshape((1,)+inputs.shape)
         n, h, w = inputs.shape
         with torch.no_grad():
@@ -88,6 +104,9 @@ class TextRecognizer:
         for ind, val in zip(out.indices, out.values):
             if val != 0:
                 strs[ind[0]] += self.decode([val]) # inds [sample, character] sorted lexicographically
+        
+        if reshape:
+            strs = strs[0]
         
         return strs
     
@@ -164,13 +183,13 @@ class TextRecognizer:
         
         self.optim.zero_grad()
         output = self.rec(input)
-        cost = self.loss(output, targets, in_lengths, tar_lengths)/w
+        cost = self.loss(output, targets, in_lengths, tar_lengths)#/w
         
         if np.all(np.isfinite(cost.detach().numpy())):
             cost.backward()
             self.optim.step()
         
-        return cost*w
+        return cost#*w
 
     def check(self, batch, bb):
         if batch.checked:
