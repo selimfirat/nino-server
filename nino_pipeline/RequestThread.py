@@ -4,9 +4,10 @@ from nino_object import NinoObject
 from nino_utils import *
 class RequestThread(Thread):
     # Implement producer consumer here.
-    def __init__(self, queue):
+    def __init__(self, queue, modules):
         Thread.__init__(self)
         self.queue = queue
+        self.modules = modules
 
     def run(self):
         initial_image = "INITIAL_IMAGE"
@@ -18,20 +19,8 @@ class RequestThread(Thread):
         # Create NinoObject with a name and initial image
         no = NinoObject(request_id, initial_image) # Temp solution for com
 
-        # Create this from the request!
-        module_names = [
-          "PreprocessModule",
-          "RegionSegmentationModule"
-        ]
-        crs = request_class_references(module_names)
-        modules = [
-            crs['PreprocessModule'](),
-            crs['RegionSegmentationModule']("param1", "param2"),
-            crs['RegionSegmentationModule']("param1", "param2")
-        ]
-
         # Create NinoPipeline with modules and NinoObject
-        np = NinoPipeline(no, modules)
+        np = NinoPipeline(no, self.modules)
         np.run() # Start processsing
 
         self.queue.put(no)

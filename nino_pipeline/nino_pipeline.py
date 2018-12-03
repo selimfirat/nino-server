@@ -7,11 +7,12 @@ class NinoPipeline(object):
 
     def __init__(self, nino_obj, modules):
         self.nino_obj = nino_obj
-        if modules is not None and len(modules) > 0:
+        self.modules = modules
+        """if modules is not None and len(modules) > 0:
             if isinstance(modules[0], str):
                 self.modules = request_default_objects(modules)
             else:
-                self.modules = modules
+                self.modules = modules"""
 
     def run(self):
         for module in self.modules:

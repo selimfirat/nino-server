@@ -27,8 +27,10 @@ crs = get_class_references()
 # Default pipeline: Preprocess the image(s) and extract region images for text/
 # figures/math equations etc.
 
-# All pipelines use the following template:
-# Preprocess -> Apply module spesific enhancement or infotmation extraction
+# - All pipelines use the following template:
+#   Preprocess -> Apply module spesific enhancement or information extraction
+# - Mind that you are creating objects of module classes here, hence the "()".
+# - For default parameters, use: crs[M.{YOUR_MODULE_NAME}]().
 modules = [
     crs[M.PREPROCESS](),
     crs[M.REGION_SEGMENTATION]("param1", "param2")
@@ -39,7 +41,7 @@ nino_object_queue = Queue() # Queue for nino objects that were created by handli
 
 # Move this to a seperate thread so that this is done for each request. Make the
 # thread infinetly listen to requests
-t = RequestThread(nino_object_queue)
+t = RequestThread(nino_object_queue, modules)
 t.start()
 t.join()
 
