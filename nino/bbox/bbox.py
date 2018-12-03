@@ -8,8 +8,8 @@
 import json
 import numpy as np
 
-import imgprep as ip
-from rect import *
+from ..utils import imgprep as ip
+from ..utils.rect import *
 
 # bbox visitor: visits each subclass of bbox, annotates it and possibly returns an output
 # a note itself may be a bbox perhaps

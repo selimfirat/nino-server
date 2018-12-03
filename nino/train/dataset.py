@@ -3,7 +3,7 @@
 import numpy as np
 import bisect
 
-from bbox import Rect
+# from ..utils.rect import *
 
 class Sample:
     def __init__(self, path, fname):

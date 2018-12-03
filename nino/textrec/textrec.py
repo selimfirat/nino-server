@@ -12,11 +12,11 @@ import torch.autograd as ag
 import tensorflow as tf
 import editdistance as ed
 
-import bbox as bb
-import textdataset as ds
-import textprep as pr
-import imgprep as ip
-from textenc import *
+from ..bbox import bbox as bb
+from ..utils import imgprep as ip
+# import textdataset as ds
+# import textprep as pr
+from .textenc import *
 
 class TextRecognizer(bb.BBoxVisitor):
     

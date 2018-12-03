@@ -4,8 +4,8 @@
 import numpy as np
 import cv2
 
-import bbox as bb
-import imgprep as ip
+from ..utils import imgprep as ip
+from ..bbox import bbox as bb
 
 class LineSegmentor(bb.BBoxVisitor):
     def __init__(self, downsample=4, r=3):

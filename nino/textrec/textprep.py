@@ -9,17 +9,17 @@ import numpy as np
 import cv2
 import os
 
-import textdataset as ds
-import textenc as enc
-import imgprep as ip
+from .textdataset import *
+from ..textrec import textenc as enc
+from ..utils import imgprep as ip
 
-class WordTrainSample(ds.TextSample):
+class WordTrainSample(TextSample):
     def __init__(self, path, fname, text, lengths):
         super(WordTrainSample, self).__init__(path, fname, text)
         self.lengths = lengths # 1d array of lengths of each text
         self.checked = False
 
-class IAMTrainDataset(ds.TrainDataset):
+class IAMTrainDataset(TrainDataset):
     def __init__(self, iam, subdir, batchsiz, 
                  create=True, encoding='all', verbose=False, binarize=True, normalize=False,
                  msb=True, tabulate=True, sort=True):

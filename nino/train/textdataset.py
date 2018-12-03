@@ -4,7 +4,8 @@ import numpy as np
 import cv2
 import os
 
-from dataset import *
+from ..utils.rect import *
+from .dataset import *
 
 class TextSample(Sample):
     def __init__(self, path, fname, text):
