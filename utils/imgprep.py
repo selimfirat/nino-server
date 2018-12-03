@@ -29,12 +29,6 @@ def crop(img, rect, copy=True):
     res = img[rect.y0:rect.y1,rect.x0:rect.x1]
     return res.copy() if copy else res
 
-def get_image(bbox, image=None, **kwargs):
-    'Called by BBoxVisitor to access image of bbox, possibly stored in bbox itself or provided as keyword argument.'
-    if bbox.annot.image is not None:
-        return bbox.annot.image
-    if image is not None:
-        return crop(image, bbox.rect)
-    return None
+
 
 # may add here further functions to find contours, bounding boxes etc. when the need arises
