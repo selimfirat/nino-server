@@ -1,9 +1,7 @@
 import importlib
 from nino_exceptions import RequirementException
 from nino_utils import *
-from nino_modules import exmodule1
-from nino_modules import nino_module
-from nino_modules import exmodule2
+from nino_modules import *
 
 class NinoPipeline(object):
 
