@@ -3,17 +3,19 @@ from nino_object import NinoObject
 from nino_utils import *
 from RequestThread import RequestThread
 from queue import Queue
+import M
 
-# TODO: coonect server to handle request.
-# TODO: apply composite to nino_pipeline
-# TODO: Create a module, M, to hold constants for module names. Load all modules
-# at initialization and access them via request_class_references.
-
-"""module_names = [
-  "PreprocessModule",
-  "RegionSegmentationModule"
-]
-crs = request_class_references(default_module_names)"""
+################################################################################
+# Module Writer Responsiblities:
+# - Include name of the module to M.py
+# - Extend nino_module, set self.process_name = M.{YOUR_MODULE_NAME}
+# - Implement apply_module and get_requirements_list functions
+# - Make sure each parameter has a default value in __init__
+# - Make sure apply_module sets appropriate tags
+################################################################################
+# TODO: Connect server to handle request.
+# TODO: Apply composite to nino_pipeline.
+# TODO: Update examples
 
 load_modules()
 crs = get_class_references()
@@ -28,8 +30,8 @@ crs = get_class_references()
 # All pipelines use the following template:
 # Preprocess -> Apply module spesific enhancement or infotmation extraction
 modules = [
-    crs['PreprocessModule'](),
-    crs['RegionSegmentationModule']("param1", "param2")
+    crs[M.PREPROCESS](),
+    crs[M.REGION_SEGMENTATION]("param1", "param2")
 ]
 
 request_queue = Queue() # Queue for request that are yet to be handled

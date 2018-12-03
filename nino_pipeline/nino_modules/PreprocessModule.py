@@ -1,8 +1,9 @@
 from .nino_module import NinoModule
+import M
 class PreprocessModule(NinoModule):
 
     def __init__(self):
-        self.process_name = "PreprocessModule"
+        self.process_name = M.PREPROCESS
 
     def apply_module(self, nino_obj):
         print("Preprocessing...")

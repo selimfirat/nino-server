@@ -1,9 +1,10 @@
 from .nino_module import NinoModule
+import M
 
 class RegionSegmentationModule(NinoModule):
 
     def __init__(self, param1="p1", param2="p2"):
-        self.process_name = "RegionSegmentationModule"
+        self.process_name = M.REGION_SEGMENTATION
         self.param1 = param1
         self.param2 = param2
 
