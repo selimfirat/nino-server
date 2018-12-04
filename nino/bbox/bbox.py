@@ -8,9 +8,10 @@
 import json
 import numpy as np
 
-from rect import *
+from ..utils import imgprep as ip
+from ..utils.rect import *
 
-# bbox visitor: visits each subclass of bbox, annotates it and possibly returns
+# bbox visitor: visits each subclass of bbox, annotates it and possibly returns an output
 # a note itself may be a bbox perhaps
 class BBoxVisitor:
     def visit(self, bbox, *args, **kwargs):
@@ -33,6 +34,15 @@ class BBoxVisitor:
     def visit_eqn(self, bbox, *args, **kwargs):
         return self.visit_bbox(bbox, *args, **kwargs)
     # etc.
+    
+    def get_image(self, bbox, image=None, **kwargs): # call from visit_<cls> to access image of bbox
+        'Called by BBoxVisitor to access image of bbox, possibly stored in bbox itself or provided as keyword argument.'
+        if bbox.annot.image is not None:
+            return bbox.annot.image
+        if image is not None:
+            return ip.crop(image, bbox.rect)
+        return None
+
 
 class BBox:
     'Class representing any segment within a note.'
@@ -81,16 +91,16 @@ class Note(BBox):
 
 class TextBBox(BBox): # may be broken into lines, which may themselves be composed of words or equations
     class TextBBoxAnnot(BBox.BBoxAnnot):
-        def __init__(self, text, rect, image=None):
+        def __init__(self, text, image=None):
             super(TextBBox.TextBBoxAnnot, self).__init__(image)
             self.text = text # iterable of strings
-            self.rect = rect # may also store processed image of box
+            # self.rect = rect # may also store processed image of box
         def __add__(self, other):
             # may by default store list of tokens and concatenate them
             # then lines may be arranged vertically while words in lines may be arranged horizontally
-            return TextBBox.TextBBoxAnnot(self.text + other.text, self.rect + other.rect)
-        # def __str__(self):
-        #     return '\n'.join(self.text)
+            return TextBBox.TextBBoxAnnot(self.text + other.text) #, self.rect + other.rect)
+        def __str__(self):
+            return '\n'.join(map(str,self.text))
     
     def __init__(self, rect, c=100, text='', image=None, children=None):
         super(TextBBox, self).__init__(rect, c, TextBBox.TextBBoxAnnot([text], rect, image), children)
@@ -100,9 +110,8 @@ class TextBBox(BBox): # may be broken into lines, which may themselves be compos
 
 class LineBBox(TextBBox): # composed of words or inline expressions
     class LineBBoxAnnot(TextBBox.TextBBoxAnnot):
-        # def __str__(self):
-        #     return ' '.join(self.text)
-        pass
+        def __str__(self):
+            return ' '.join(map(str,self.text))
     
     def __init__(self, rect, c=100, text='', image=None, children=None):
         super(LineBBox, self).__init__(rect, c, LineBBox.LineBBoxAnnot([text], rect, image), children)

@@ -9,18 +9,19 @@ import numpy as np
 import cv2
 import os
 
-import textdataset as ds
-import textenc as enc
+from .textdataset import *
+from ..textrec import textenc as enc
+from ..utils import imgprep as ip
 
-class WordTrainSample(ds.TextSample):
+class WordTrainSample(TextSample):
     def __init__(self, path, fname, text, lengths):
         super(WordTrainSample, self).__init__(path, fname, text)
         self.lengths = lengths # 1d array of lengths of each text
         self.checked = False
 
-class IAMTrainDataset(ds.TrainDataset):
+class IAMTrainDataset(TrainDataset):
     def __init__(self, iam, subdir, batchsiz, 
-                 create=True, encoding='all', verbose=False, binarize=True, normalize=True,
+                 create=True, encoding='all', verbose=False, binarize=True, normalize=False,
                  msb=True, tabulate=True, sort=True):
         super(IAMTrainDataset, self).__init__(iam, msb, tabulate, sort)
         self.topdir = '%s/%s/%s' % (iam.topdir, subdir, iam.datatype)
@@ -74,9 +75,9 @@ class IAMTrainDataset(ds.TrainDataset):
                         if verbose:
                             print('Could not read %s' % iam.samlist[k].fname)
                         continue
-                    a = cv2.resize(a, (int(rwidths[k]), 32))
+                    a = ip.rescale(a, h=32) # cv2.resize(a, (int(rwidths[k]), 32))
                     if binarize:
-                        a = cv2.threshold(a, iam.samlist[k].thres, 255, cv2.THRESH_BINARY)[1]
+                        a = ip.binarize(a, iam.samlist[k].thres) # cv2.threshold(a, iam.samlist[k].thres, 255, cv2.THRESH_BINARY)[1]
                     if normalize:
                         a = (a - a.mean()) / a.std()
                     arr.append(a)

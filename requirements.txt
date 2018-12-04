@@ -6,3 +6,6 @@ Pillow
 djoser
 coreapi
 pygments
+pydotplus
+django-extensions
+xmltodict

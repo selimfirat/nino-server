@@ -1,7 +1,7 @@
 # Samples from im2latex
 # Obtained by calling "make build" on https://github.com/guillaumegenthial/im2latex
 
-from dataset import *
+from nino.train.dataset import *
 
 class EqnSample(TextSample):
     def __init__(self, path, fname, latex):

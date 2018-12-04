@@ -12,11 +12,11 @@ import torch.autograd as ag
 import tensorflow as tf
 import editdistance as ed
 
-import bbox as bb
-import textdataset as ds
-import textprep as pr
-import imgprep as ip
-from textenc import *
+from ..bbox import bbox as bb
+from ..utils import imgprep as ip
+# import textdataset as ds
+# import textprep as pr
+from .textenc import *
 
 class TextRecognizer(bb.BBoxVisitor):
     
@@ -44,6 +44,10 @@ class TextRecognizer(bb.BBoxVisitor):
         
         if path is not None:
             self.load(path)
+            
+    def visit_line(self, line, **kwargs):
+        self.visit_children(line, **kwargs)
+        # TODO combine the text read from each word in line
     
     def visit_word(self, word, image=None, binarize=True, normalize=False, straighten=False, *args, **kwargs):
         '''
@@ -53,7 +57,7 @@ class TextRecognizer(bb.BBoxVisitor):
         binarize, normalize, straighten etc.
         '''
         # obtain image of line, either as attribute or in kwargs
-        image = ip.get_image(word, image)
+        image = self.get_image(word, image)
         
         # resize, binarize line etc.
         # possibly move these to another preprocessing module

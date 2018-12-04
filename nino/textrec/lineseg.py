@@ -4,8 +4,8 @@
 import numpy as np
 import cv2
 
-import bbox as bb
-import imgprep as ip
+from ..utils import imgprep as ip
+from ..bbox import bbox as bb
 
 class LineSegmentor(bb.BBoxVisitor):
     def __init__(self, downsample=4, r=3):
@@ -15,7 +15,7 @@ class LineSegmentor(bb.BBoxVisitor):
         
     def visit_line(self, line, *args, **kwargs):
         # get image of line
-        img = ip.get_image(line, **kwargs)
+        img = self.get_image(line, **kwargs)
         
         # binarize, then downsample and close image
         img = ip.binarize(img, otsu=True)
@@ -35,6 +35,7 @@ class LineSegmentor(bb.BBoxVisitor):
         rects = [rect.rescale(self.downsample) for rect in rects]
         # rects = [bb.Rect(rect.x0-self.r/2, rect.y0-self.r/2,
         #                  rect.x1+self.r/2, rect.y1+self.r/2) for rect in rects]
+        rects.sort(key=lambda rect: rect.x0) # sort rectangles, maybe first guarantee no rectangles overlap
         
         # for each rectangle, add new WordBBox to line.children
         for rect in rects:
