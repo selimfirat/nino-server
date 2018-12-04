@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'nino.api.apps.ApiConfig',
     'djoser',
+    'django_extensions',
 
 ]
 

@@ -38,6 +38,7 @@ class NoteList(mixins.ListModelMixin,
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        
         return self.create(request, *args, **kwargs)
 
 class NoteDetail(mixins.RetrieveModelMixin,
