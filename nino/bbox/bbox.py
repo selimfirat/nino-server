@@ -91,14 +91,14 @@ class Note(BBox):
 
 class TextBBox(BBox): # may be broken into lines, which may themselves be composed of words or equations
     class TextBBoxAnnot(BBox.BBoxAnnot):
-        def __init__(self, text, rect, image=None):
+        def __init__(self, text, image=None):
             super(TextBBox.TextBBoxAnnot, self).__init__(image)
             self.text = text # iterable of strings
-            self.rect = rect # may also store processed image of box
+            # self.rect = rect # may also store processed image of box
         def __add__(self, other):
             # may by default store list of tokens and concatenate them
             # then lines may be arranged vertically while words in lines may be arranged horizontally
-            return TextBBox.TextBBoxAnnot(self.text + other.text, self.rect + other.rect)
+            return TextBBox.TextBBoxAnnot(self.text + other.text) #, self.rect + other.rect)
         def __str__(self):
             return '\n'.join(map(str,self.text))
     

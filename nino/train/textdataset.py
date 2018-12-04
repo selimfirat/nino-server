@@ -4,8 +4,8 @@ import numpy as np
 import cv2
 import os
 
-from ..utils.rect import *
-from .dataset import *
+from nino.utils.rect import *
+from nino.train.dataset import *
 
 class TextSample(Sample):
     def __init__(self, path, fname, text):
