@@ -6,14 +6,14 @@ class RequestThread(Thread):
     # Implement producer consumer here.
     def __init__(self, data, queue, modules):
         Thread.__init__(self)
-        self.data = data
+        self.data = data.split("@*@NINO@*@") #0->note_name 1->filename 2->username
+        print(self.data)
         self.queue = queue
         self.modules = modules
 
     def run(self):
-        #initial_image = "INITIAL_IMAGE"
-        initial_image = self.data
-        username = "USERNAME"
+        initial_image = self.data[1]
+        username = self.data[2]
         request_id = "REQUEST_ID"
         print('Running request for user ' + username +
         " with request id #" + request_id)
@@ -25,5 +25,4 @@ class RequestThread(Thread):
         np = NinoPipeline(no, self.modules)
         np.run() # Start processsing
 
-        print("putting : "+self.data)
         self.queue.put(no)

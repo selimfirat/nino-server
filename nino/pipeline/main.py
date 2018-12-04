@@ -43,11 +43,12 @@ def main():
 
     def server():
         host = socket.gethostname()   # get local machine name
-        port = 8080  # Make sure it's within the > 1024 $$ <65535 range
+        port = 5432  # Make sure it's within the > 1024 $$ <65535 range
 
         s = socket.socket()
         s.bind((host, port))
 
+        print("Listening to client requests...")
         while True:
             s.listen(1)
             client_socket, adress = s.accept()

@@ -16,13 +16,10 @@ from rest_framework.status import (
     HTTP_404_NOT_FOUND,
     HTTP_200_OK
 )
-#import sys
-#sys.path.insert(0, "..")
-#sys.path.insert(0, "../pipeline")
 
 import socket
 host = socket.gethostname()  # get local machine name
-port = 8080  # Make sure it's within the > 1024 $$ <65535 range
+port = 5432  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
 s.connect((host, port))
 
@@ -47,9 +44,12 @@ class NoteList(mixins.ListModelMixin,
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        s.send(request.encode('utf-8'))
-        import os
-        os.mkdir("wiyuuuuw")
+        request_dict = dict(request.data)
+        s.send(request_dict['name'][0].encode('utf-8'))
+        s.send("@*@NINO@*@".encode('utf-8'))
+        s.send(request_dict['image'][0]._get_name().encode('utf-8'))
+        s.send("@*@NINO@*@".encode('utf-8'))
+        s.send(str(request.user).encode('utf-8'))
         return self.create(request, *args, **kwargs)
 
 class NoteDetail(mixins.RetrieveModelMixin,
