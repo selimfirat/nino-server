@@ -39,7 +39,7 @@ def main():
     ]
 
     #request_queue = Queue() # Queue for request that are yet to be handled
-    nino_object_queue = Queue() # Queue for nino objects that were created by handling requests
+    #nino_object_queue = Queue() # Queue for nino objects that were created by handling requests
 
     def server():
         host = socket.gethostname()   # get local machine name
@@ -66,22 +66,6 @@ def main():
 
     server()
 
-    import threading
-    def printit():
-        threading.Timer(5.0, printit).start()
-        #print(request_queue.qsize())
-        print(shared_queue.qsize())
-    printit()
-
-    # Move this to a seperate thread so that this is done for each request. Make the
-    # thread infinetly listen to requests
-    t = RequestThread(nino_object_queue, modules)
-    t.start()
-    t.join()
-
-    # Move this to a seperate infinite thread to wait for created nino objects.
-    no = nino_object_queue.get()
-
     # Get the original image
     print("Initial Input: ", no.get_initial_input())
     # Get individual outputs from each module
@@ -90,9 +74,9 @@ def main():
     # Get the final output of the pipeline
     print("Final Output: ", no.get_final_out(), "\n")
 
-def add_request(request):
+"""def add_request(request):
     global request_queue
-    request_queue.put(request)
+    request_queue.put(request)"""
 
 if __name__ == "__main__":
     main()

@@ -7,8 +7,8 @@ class PreprocessModule(NinoModule):
 
     def apply_module(self, nino_obj):
         print("Preprocessing...")
-        output = "Preprocessed Output";
-        nino_obj.set(self.process_name, output)
+        #output = "Preprocessed Output";
+        nino_obj.set(self.process_name, nino_obj.get_initial_input())
 
     def get_requirements_list(self):
         return []
