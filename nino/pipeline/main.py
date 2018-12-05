@@ -1,6 +1,6 @@
 from nino_object import NinoObject
 from nino_utils import *
-from RequestThread import RequestThread
+from RequestHandleThread import RequestHandleThread
 from queue import Queue
 import M
 import multiprocessing
@@ -57,11 +57,11 @@ def main():
                 data = client_socket.recv(1024).decode('utf-8')
                 if not data:
                   break
-                print('From online user: ' + data)
-                t = RequestThread(data, nino_object_queue, modules)
+                print('Data got from client: ' + data)
+                t = RequestHandleThread(data, nino_object_queue, modules)
                 t.start()
-                t.join()
-                print(nino_object_queue.qsize())
+                #t.join()
+                #print(nino_object_queue.qsize())
         s.close()
 
     server()

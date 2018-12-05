@@ -2,7 +2,7 @@ from threading import Thread
 from nino_pipeline import NinoPipeline
 from nino_object import NinoObject
 from nino_utils import *
-class RequestThread(Thread):
+class RequestHandleThread(Thread):
     # Implement producer consumer here.
     def __init__(self, data, queue, modules):
         Thread.__init__(self)
