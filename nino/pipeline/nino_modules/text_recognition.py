@@ -28,6 +28,6 @@ class TextRecognition(NinoModule):
         nino_obj.set(self.process_name, note)
 
     def get_requirements_list(self):
-        return ['INITIAL_INPUT', 'layout_analysis'] # these strings should really be in a config file, or simply a class property
+        return ['layout_analysis'] # these strings should really be in a config file, or simply a class property
 
 text_recognition = TextRecognition
