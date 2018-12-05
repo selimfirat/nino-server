@@ -58,7 +58,7 @@ def main():
                 if not data:
                   break
                 print('Data got from client: ' + data)
-                t = RequestHandleThread(data, nino_object_queue, modules)
+                t = RequestHandleThread(data, modules)
                 t.start()
                 #t.join()
                 #print(nino_object_queue.qsize())

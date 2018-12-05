@@ -8,11 +8,10 @@ import pathlib
 dir_notes = "../../notes/"
 class RequestHandleThread(Thread):
     # Implement producer consumer here.
-    def __init__(self, data, queue, modules):
+    def __init__(self, data, modules):
         Thread.__init__(self)
         self.data = data.split("@*@NINO@*@") #0->note_name 1->filename 2->username
         print(self.data)
-        self.queue = queue
         self.modules = modules
 
     def run(self):
