@@ -80,7 +80,7 @@ class BBox:
 
 class Note(BBox):
     def __init__(self, image, **kwargs):
-        super(Note, self).__init__(Rect(0,0,-1,-1), image=image)
+        super(Note, self).__init__(Rect(0,0,-1,-1), image=image, **kwargs)
     
     def accept(self, visitor, *args, **kwargs):
         if 'image' not in kwargs:
@@ -131,7 +131,11 @@ class WordBBox(TextBBox): # composed of words or inline expressions
         return visitor.visit_word(self, *args, **kwargs)
 
 class EqnBBox(BBox): # composed of mathematical expressions that can span multiple lines
-    # TODO
+    # TODO special annot class perhaps
+    
+    def __init__(self, rect, c=100, latex='', image=None, children=None):
+        super(EqnBBox, self).__init__(rect, c, TextBBox.TextBBoxAnnot([latex], image), children)
+        
     def accept(self, visitor, *args, **kwargs):
         return visitor.visit_eqn(self, *args, **kwargs)
 
