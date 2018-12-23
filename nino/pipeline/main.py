@@ -38,9 +38,6 @@ def main():
         crs[M.REGION_SEGMENTATION]("param1", "param2")
     ]
 
-    #request_queue = Queue() # Queue for request that are yet to be handled
-    #nino_object_queue = Queue() # Queue for nino objects that were created by handling requests
-
     def server():
         host = socket.gethostname()   # get local machine name
         port = 5432  # Make sure it's within the > 1024 $$ <65535 range
@@ -58,10 +55,41 @@ def main():
                 if not data:
                   break
                 print('Data got from client: ' + data)
-                t = RequestHandleThread(data, modules)
-                t.start()
-                #t.join()
-                #print(nino_object_queue.qsize())
+                #t = RequestHandleThread(data, modules)
+                #t.start()
+                def handle(recieved_data):
+                    data = recieved_data.split("@*@NINO@*@") #0->note_name 1->filename 2->username
+                    print(data)
+                    initial_image_str = data[1]
+                    username = data[2]
+                    request_id = "REQUEST_ID"
+                    print('Running request for user ' + username +
+                    " with request id #" + request_id)
+
+                    initial_image = Image.open(dir_notes + 'original_images/' + initial_image_str)
+
+                    # Create NinoObject with a name and initial image
+                    no = NinoObject(request_id, initial_image) # Temp solution for com
+
+                    # Create NinoPipeline with modules and NinoObject
+                    np = NinoPipeline(no, self.modules)
+                    np.run() # Start processsing
+
+                    ########################################################################
+                    # For debuging purposes
+                    ########################################################################
+                    path_request = dir_notes + 'processed_images/' + request_id + '/'
+                    pathlib.Path(path_request).mkdir(parents=True, exist_ok=True)
+                    for m in modules:
+                        output_of_module = no.get(m.process_name)
+                        output_of_module.save(path_request + m.process_name, "JPEG")
+                    final_out = no.get_final_out()
+                    final_out.save(path_request + "FINAL", "JPEG")
+
+                handle(data)
+
+
+
         s.close()
 
     server()
@@ -73,10 +101,6 @@ def main():
     print("Output of exmodule2: ", no.get('RegionSegmentationModule'))
     # Get the final output of the pipeline
     print("Final Output: ", no.get_final_out(), "\n")
-
-"""def add_request(request):
-    global request_queue
-    request_queue.put(request)"""
 
 if __name__ == "__main__":
     main()
