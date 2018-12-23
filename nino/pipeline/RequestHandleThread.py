@@ -35,11 +35,12 @@ class RequestHandleThread(Thread):
         ########################################################################
         path_request = dir_notes + 'processed_images/' + request_id + '/'
         pathlib.Path(path_request).mkdir(parents=True, exist_ok=True)
-        for m in modules:
+        for m in self.modules:
             output_of_module = no.get(m.process_name)
             output_of_module.save(path_request + m.process_name, "JPEG")
         final_out = no.get_final_out()
         final_out.save(path_request + "FINAL", "JPEG")
         ########################################################################
 
+         print("Done processing!")
         # TODO: SEND PIC BACK TO USER XD
