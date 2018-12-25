@@ -1,6 +1,7 @@
-from .nino_module import NinoModule
+from nino_module import NinoModule
 import xmltodict
 import os
+from PIL import Image
 
 class LayoutAnalysis(NinoModule):
 
@@ -13,7 +14,7 @@ class LayoutAnalysis(NinoModule):
         localImagePath = nino_obj.get_initial_input()
         outputFile = "out" + str(self.counter) + ".xml"
         
-        os.system("bash ./tesseract-recognize-docker --only-layout --layout-level=region " + localImagePath + " " + outputFile)
+        os.system("bash ./tesseract-recognize-docker -o " + outputFile + " " + localImagePath + " --layout-level=region")
         
         with open(outputFile) as fd:
             layout = xmltodict.parse(fd.read())
@@ -54,8 +55,12 @@ if __name__ == "__main__":
 
         def check_requirement(self, process_name):
             return process_name in self.process_output_dict
-    
+#    im = Image.open("0.png")
+#    rgb_im = im.convert('RGB')
+#    rgb_im.save('0.jpg')
+
     layout_module = LayoutAnalysis()
-    no = NinoObject("#1", "../../notes/original_images/13722_1071460739534917_2979984990414340900_n.jpg") 
+    # no = NinoObject("#1", "../../../../notes/original_images/JPEG_20181224_000413_.jpg")
+    no = NinoObject("#1", "0.png")
     layout_module.apply_module(no)
-    print(json.dumps(no.get("layoutanalysis")))
+    print(json.dumps(no.__dict__))

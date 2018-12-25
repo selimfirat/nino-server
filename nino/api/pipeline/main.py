@@ -1,4 +1,4 @@
-from nino_object import NinoObject
+"""from nino_object import NinoObject
 from nino_utils import *
 from RequestHandleThread import RequestHandleThread
 from nino_pipeline import NinoPipeline
@@ -81,3 +81,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+"""

@@ -1,7 +1,7 @@
 import importlib
-from nino_exceptions import RequirementException
-from nino_utils import *
-from nino_modules import *
+from .nino_exceptions import RequirementException
+from .nino_utils import *
+from .nino_modules import *
 
 class NinoPipeline(object):
 

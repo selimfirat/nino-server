@@ -1,4 +1,4 @@
-from nino_pipeline import NinoPipeline
+"""from nino_pipeline import NinoPipeline
 from nino_object import NinoObject
 
 ################################################################################
@@ -58,3 +58,4 @@ np = NinoPipeline(no, modules)
 np.run() # Start processsing
 
 print_outs()
+"""

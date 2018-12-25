@@ -17,12 +17,22 @@ from rest_framework.status import (
     HTTP_200_OK
 )
 
-import socket
+from .pipeline.nino_object import NinoObject
+from .pipeline.nino_utils import *
+#from .pipeline.RequestHandleThread import RequestHandleThread
+from .pipeline.nino_pipeline import NinoPipeline
+from .pipeline import M
+
+from PIL import Image
+import pathlib
+
+"""import socket
 host = socket.gethostname()  # get local machine name
 port = 5432  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
-s.connect((host, port))
+s.connect((host, port))"""
 
+dir_notes = "notes/"
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
                      generics.GenericAPIView):
@@ -45,15 +55,54 @@ class NoteList(mixins.ListModelMixin,
 
     def post(self, request, *args, **kwargs):
         req = self.create(request, *args, **kwargs)
+        load_modules()
+        crs = get_class_references()
+        
+        print(req.__dict__)
+        
         request_dict = dict(request.data)
-        req_str = (request_dict['name'][0].encode('utf-8') + "@*@NINO@*@".encode('utf-8') + request_dict['image'][0]._get_name().encode('utf-8') +
-        "@*@NINO@*@".encode('utf-8') + str(request.user).encode('utf-8') + "@*@NINO_END@*@".encode('utf-8'))
-        #s.send(request_dict['name'][0].encode('utf-8'))
-        #s.send("@*@NINO@*@".encode('utf-8'))
-        #s.send(request_dict['image'][0]._get_name().encode('utf-8'))
-        #s.send("@*@NINO@*@".encode('utf-8'))
-        #s.send(str(request.user).encode('utf-8'))
-        s.send(req_str)
+        print(req.__dict__['data']['id'])
+        initial_image_str = request_dict['image'][0]._get_name()
+        username = req.__dict__['data']['owner'] #str(request.user)
+        request_id = str(req.__dict__['data']['id'])
+        print('Running request for user ' + username +
+        " with request id #" + request_id)
+
+        initial_image = Image.open(dir_notes + 'original_images/' + initial_image_str)
+
+        modules = [
+            crs[M.PREPROCESS](),
+            crs[M.REGION_SEGMENTATION]("param1", "param2")
+        ]
+        
+        # Create NinoObject with a name and initial image
+        no = NinoObject(request_id, initial_image) # Temp solution for com
+
+        # Create NinoPipeline with modules and NinoObject
+        np = NinoPipeline(no, modules)
+        np.run() # Start processsing
+
+        ########################################################################
+        # For debuging purposes
+        ########################################################################
+        path_request = dir_notes + 'processed_images/' + request_id + '/'
+        pathlib.Path(path_request).mkdir(parents=True, exist_ok=True)
+        for m in modules:
+            output_of_module = no.get(m.process_name)
+            output_of_module.save(path_request + m.process_name + ".jpg", "JPEG")
+        final_out = no.get_final_out()
+        final_out.save(path_request + "FINAL.jpg", "JPEG")
+        ########################################################################
+
+        print("Done processing!")
+        print("done")
+        
+        import base64
+        
+        with open(path_request + "FINAL.jpg", "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            req.__dict__['data']['image'] = encoded_string
+            
         return req
 
 class NoteDetail(mixins.RetrieveModelMixin,

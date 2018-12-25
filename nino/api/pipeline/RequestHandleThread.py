@@ -1,16 +1,16 @@
-from threading import Thread
-from nino_pipeline import NinoPipeline
-from nino_object import NinoObject
-from nino_utils import *
+"""from threading import Thread
+from .nino_pipeline import NinoPipeline
+from .nino_object import NinoObject
+from .nino_utils import *
 from PIL import Image
 import pathlib
 
-dir_notes = "../../notes/"
+dir_notes = "../../../notes/"
 class RequestHandleThread(Thread):
     # Implement producer consumer here.
     def __init__(self, data, modules):
         Thread.__init__(self)
-        self.data = data.split("@*@NINO@*@") #0->note_name 1->filename 2->username
+        self.name self.data = data.split("@*@NINO@*@") #0->note_name 1->filename 2->username
         print(self.data)
         self.modules = modules
 
@@ -42,5 +42,6 @@ class RequestHandleThread(Thread):
         final_out.save(path_request + "FINAL", "JPEG")
         ########################################################################
 
-         print("Done processing!")
+        print("Done processing!")
         # TODO: SEND PIC BACK TO USER XD
+"""

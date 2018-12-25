@@ -1,5 +1,5 @@
 from .nino_module import NinoModule
-import M
+from .. import M
 class PreprocessModule(NinoModule):
 
     def __init__(self):
