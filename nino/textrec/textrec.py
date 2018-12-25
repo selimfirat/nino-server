@@ -49,15 +49,14 @@ class TextRecognizer(bb.BBoxVisitor):
         self.visit_children(line, **kwargs)
         # TODO combine the text read from each word in line
     
-    def visit_word(self, word, image=None, binarize=True, normalize=False, straighten=False, *args, **kwargs):
+    def visit_word(self, word, binarize=True, normalize=False, straighten=False, *args, **kwargs):
         '''
         Given a word of text, infer and write the text written in it.
         Optional kwargs:
-        image: the image of the note to which the line belongs, opened with cv2
         binarize, normalize, straighten etc.
         '''
         # obtain image of line, either as attribute or in kwargs
-        image = self.get_image(word, image)
+        image = self.get_image(word, **kwargs)
         
         # resize, binarize line etc.
         # possibly move these to another preprocessing module

@@ -25,7 +25,7 @@ def binarize(img, thres=None, otsu=False):
         thres = cv2.ADAPTIVE_THRESH_GAUSSIAN_C
     if otsu:
         thres = 0
-    return cv2.threshold(img, thres, 255, cv2.THRESH_BINARY+otsu*cv2.THRESH_OTSU)[1]
+    return cv2.threshold(img.astype(np.uint8), thres, 255, cv2.THRESH_BINARY+otsu*cv2.THRESH_OTSU)[1]
 
 def crop(img, rect, copy=True):
     res = img[rect.y0:rect.y1,rect.x0:rect.x1]

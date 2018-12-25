@@ -17,9 +17,15 @@ class BBoxVisitor:
     def visit(self, bbox, *args, **kwargs):
         return bbox.accept(self, *args, **kwargs)
     def visit_children(self, bbox, *args, **kwargs): # may override this method to update parent after visiting children
-        res = None
+        init = None
+        op = lambda a, b: b
+        if 'init' in kwargs:
+            init = kwargs['init']
+        if 'op' in kwargs:
+            op = kwargs['op']
+        res = init
         for b in bbox.children:
-            res = self.visit(b, *args, **kwargs)
+            res = op(res, self.visit(b, *args, **kwargs))
         return res
     def visit_bbox(self, bbox, *args, **kwargs): # default
         return self.visit_children(bbox, *args, **kwargs)
@@ -28,9 +34,9 @@ class BBoxVisitor:
     def visit_text(self, bbox, *args, **kwargs):
         return self.visit_bbox(bbox, *args, **kwargs)
     def visit_line(self, bbox, *args, **kwargs):
-        return self.visit_bbox(bbox, *args, **kwargs)
+        return self.visit_text(bbox, *args, **kwargs)
     def visit_word(self, bbox, *args, **kwargs):
-        return self.visit_bbox(bbox, *args, **kwargs)
+        return self.visit_line(bbox, *args, **kwargs)
     def visit_eqn(self, bbox, *args, **kwargs):
         return self.visit_bbox(bbox, *args, **kwargs)
     # etc.
@@ -42,6 +48,7 @@ class BBoxVisitor:
         if image is not None:
             return ip.crop(image, bbox.rect)
         return None
+
 
 
 class BBox:
@@ -79,8 +86,8 @@ class BBox:
         return visitor.visit_bbox(self, *args, **kwargs)
 
 class Note(BBox):
-    def __init__(self, image, **kwargs):
-        super(Note, self).__init__(Rect(0,0,-1,-1), image=image, **kwargs)
+    def __init__(self, image, rect=Rect(0,0,-1,-1), **kwargs):
+        super(Note, self).__init__(rect, image=image, **kwargs)
     
     def accept(self, visitor, *args, **kwargs):
         if 'image' not in kwargs:
