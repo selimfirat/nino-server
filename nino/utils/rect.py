@@ -1,7 +1,6 @@
 # Class representing rectangular regions in images
 
 import numpy as np
-from numbers import Number
 
 class Rect:
     def __init__(self, x0, y0, x1, y1):
@@ -14,29 +13,14 @@ class Rect:
         self.x1 = int(x1)
         self.y1 = int(y1)
     
-    def shape(self):
-        return (self.y1-self.y0, self.x1-self.x0)
-    
-    def __repr__(self):
-        return 'Rect(%d,%d,%d,%d)' % (self.x0, self.y0, self.x1, self.y1)
-    
     def area(self):
         return (self.x1-self.x0)*(self.y1-self.y0)
     
     def rescale(self, scale):
-        return Rect(self.x0, self.y0, int(scale*self.x1 + (1-scale)*self.x0), 
-                                      int(scale*self.y1 + (1-scale)*self.y0))
-    
-    def intersects(self, other):
-        return (self*other).area() > 0
-    
-    def __radd__(self, other):
-        return self + other
+        return Rect(scale*self.x0, scale*self.y0, scale*self.x1, scale*self.y1)
     
     def __add__(self, other):
         'Join of two rectangles'
-        if isinstance(other, Number):
-            return Rect(self.x0+other, self.y0+other, self.x1+other, self.y1+other)
         if self.area() == 0:
             return other
         if other.area() == 0:
@@ -47,13 +31,8 @@ class Rect:
         y1 = max([self.y1, other.y1]) if -1 not in [self.y1, other.y1] else -1
         return Rect(x0, y0, x1, y1)
     
-    def __rmul__(self, other):
-        return self + other
-    
     def __mul__(self, other):
         'Meet of two rectangles'
-        if isinstance(other, Number):
-            return self.rescale(other)
         if self.area() == 0:
             return self
         if other.area() == 0:

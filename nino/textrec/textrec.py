@@ -18,6 +18,7 @@ from ..utils import imgprep as ip
 # import textprep as pr
 from .textenc import *
 
+
 class TextRecognizer(bb.BBoxVisitor):
     
     def __init__(self, nh=256, encoding=None, lr=1e-3, par=True, path=None):
@@ -49,14 +50,15 @@ class TextRecognizer(bb.BBoxVisitor):
         self.visit_children(line, **kwargs)
         # TODO combine the text read from each word in line
     
-    def visit_word(self, word, binarize=True, normalize=False, straighten=False, *args, **kwargs):
+    def visit_word(self, word, image=None, binarize=True, normalize=False, straighten=False, *args, **kwargs):
         '''
         Given a word of text, infer and write the text written in it.
         Optional kwargs:
+        image: the image of the note to which the line belongs, opened with cv2
         binarize, normalize, straighten etc.
         '''
         # obtain image of line, either as attribute or in kwargs
-        image = self.get_image(word, **kwargs)
+        image = self.get_image(word, image)
         
         # resize, binarize line etc.
         # possibly move these to another preprocessing module
@@ -70,10 +72,9 @@ class TextRecognizer(bb.BBoxVisitor):
         image = ip.rescale(image, h=32)
         
         # call infer on batch(es), either store returned list directly as lines or concatenate them in some way
-        text, c = self.infer(image)
+        text = self.infer(image)
         # possibly some postprocessing, check spelling and punctuation
         word.annot.text = text
-        word.c = c
     
     def encode(self, text):
         'Encode string into array of class numbers.'
@@ -102,9 +103,7 @@ class TextRecognizer(bb.BBoxVisitor):
         tf_seq_length = tf.convert_to_tensor([w//8]*n)
         dec = tf.nn.ctc_beam_search_decoder(tf_inputs, tf_seq_length)
         with tf.Session() as sess:
-            out, logprobs = sess.run(dec)
-        out = out[0]
-        prob = np.exp(logprobs.sum(axis=-1))
+            out = sess.run(dec)[0][0]
         
         strs = [''] * n
         for ind, val in zip(out.indices, out.values):
@@ -114,7 +113,7 @@ class TextRecognizer(bb.BBoxVisitor):
         if reshape:
             strs = strs[0]
         
-        return strs, prob
+        return strs
     
     def validate(self, dataset, verbose=10, scores=True):
         if scores:

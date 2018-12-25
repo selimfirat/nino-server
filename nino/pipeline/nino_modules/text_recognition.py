@@ -4,10 +4,11 @@ import cv2
 import os
 import sys
 
-# sys.path.append(os.path.abspath('../..'))
+sys.path.append(os.path.abspath('../..'))
 import nino.bbox.layout as ly
 import nino.textrec.textrec as tr
 import nino.textrec.lineseg as ls
+
 
 class TextRecognition(NinoModule):
     def __init__(self, model=None):
@@ -28,6 +29,6 @@ class TextRecognition(NinoModule):
         nino_obj.set(self.process_name, note)
 
     def get_requirements_list(self):
-        return ['layout_analysis'] # these strings should really be in a config file, or simply a class property
+        return ['INITIAL_INPUT', 'layout_analysis'] # these strings should really be in a config file, or simply a class property
 
 text_recognition = TextRecognition

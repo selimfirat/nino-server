@@ -44,17 +44,13 @@ class NoteList(mixins.ListModelMixin,
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        req = self.create(request, *args, **kwargs)
         request_dict = dict(request.data)
-        req_str = (request_dict['name'][0].encode('utf-8') + "@*@NINO@*@".encode('utf-8') + request_dict['image'][0]._get_name().encode('utf-8') +
-        "@*@NINO@*@".encode('utf-8') + str(request.user).encode('utf-8') + "@*@NINO_END@*@".encode('utf-8'))
-        #s.send(request_dict['name'][0].encode('utf-8'))
-        #s.send("@*@NINO@*@".encode('utf-8'))
-        #s.send(request_dict['image'][0]._get_name().encode('utf-8'))
-        #s.send("@*@NINO@*@".encode('utf-8'))
-        #s.send(str(request.user).encode('utf-8'))
-        s.send(req_str)
-        return req
+        s.send(request_dict['name'][0].encode('utf-8'))
+        s.send("@*@NINO@*@".encode('utf-8'))
+        s.send(request_dict['image'][0]._get_name().encode('utf-8'))
+        s.send("@*@NINO@*@".encode('utf-8'))
+        s.send(str(request.user).encode('utf-8'))
+        return self.create(request, *args, **kwargs)
 
 class NoteDetail(mixins.RetrieveModelMixin,
                     mixins.UpdateModelMixin,

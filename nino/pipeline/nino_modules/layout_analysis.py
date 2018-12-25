@@ -2,11 +2,12 @@ from .nino_module import NinoModule
 import xmltodict
 import os
 
+
 class LayoutAnalysis(NinoModule):
 
     def __init__(self):
         self.process_name = "layout_analysis"
-        self.counter = 1 # a file indicator in case of parallel calls to the apply module
+        self.counter = 1  # a file indicator in case of parallel calls to the apply module
 
     def apply_module(self, nino_obj):
         
