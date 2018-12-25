@@ -2,11 +2,13 @@
 
 import numpy as np
 import cv2
+import os
 
 from .dataset import *
 import nino.bbox.bbox as bb
 import nino.utils.imgprep as ip
 from nino.utils.rect import Rect
+from nino.bbox.utils import BBoxPrinter
 
 class SegmentSample(Sample):
     # generated image with bbox tree for ground truth
@@ -16,8 +18,8 @@ class SegmentSample(Sample):
         self.note = note
 
 class SegmentDataset(Dataset):
-    def __init__(self, textds, eqnds, n=None, topdir='/', msb=True, tabulate=True, sort=True, 
-                 lmin=200, lmax=1000, nmax=10, p=.5, sc=5, verbose=False, **kwargs):
+    def __init__(self, textds, eqnds, n=None, topdir='~~', msb=True, tabulate=True, sort=True, 
+                 lmin=200, lmax=1000, nmax=10, p=.5, sc=5, verbose=False, create=True, **kwargs):
         '''Dataset for segmentation generated from preexisting text and equation datasets
         textds: text dataset
         eqnds: equation dataset
@@ -26,17 +28,42 @@ class SegmentDataset(Dataset):
         lmin, lmax: minimum and maximum width or height of generated images
         nmax, p: parameters of binomial distribution to generate box count
         sc: scale bboxes to between 1/sc and sc times its original size
-        more parameters for randomness'''
+        more parameters for randomness
+        verbose: whether to output progress (default False)
+        create: whether to create new images or read from topdir'''
         super(SegmentDataset, self).__init__(topdir, msb, tabulate, sort)
         self.n = n
         self.datasets = {'text': textds, 'eqn': eqnds} # possibly add more
-        self.classes = {'text': bb.TextBBox, 'eqn': bb.EqnBBox}
+        self.classes = {'text': bb.LineBBox, 'eqn': bb.EqnBBox}
         assert all(dat.sort for dat in self.datasets.values())
         
         assert n is not None # and topdir is None # deal with this later
         
+        self.index = self.topdir + '/index.txt'
+        self.imgdir = self.topdir + '/images'
+        self.boxdir = self.topdir + '/bboxes'
+        
+        if create and self.topdir != '~~':
+            os.mkdir(self.imgdir) # what if folder already exists
+            os.mkdir(self.boxdir)
+        
         self.init_samples()
         
+        if self.topdir == '~~':
+            self.topdir = None
+        
+        if not create:
+            with open(self.index, 'r') as f:
+                for line in f:
+                    sp = line.index(' ')
+                    i, s = int(line[:sp]), line[sp+1:]
+                    if s[-1] == '\n':
+                        s = s[:-1]
+                    note = BBoxPrinter.read_note(s)
+                    self.add_sample(SegmentSample('%s/%d.png' % (self.imgdir, i), str(i), note), [i])
+        
+        if self.topdir is not None:
+            f = open(self.index, 'w')
         for i in range(n): # TODO deal with unbounded n later
             # generate width, height
             w, h = np.random.randint(lmin, lmax, 2)
@@ -80,11 +107,21 @@ class SegmentDataset(Dataset):
                 boxes.append(bbox)
                 img[y:y+h1,x:x+w1] = ip.binarize(box, otsu=True)
             
-            note = bb.Note(img, children=boxes) # TODO possibly save image and load it as needed
-            note.rect = Rect(0,0,w,h)
-            self.add_sample(SegmentSample(None, str(i), note), [i])
+            note = bb.Note(img, rect=Rect(0,0,w,h), children=boxes) # TODO possibly save image and load it as needed
+            if self.topdir is None:
+                self.add_sample(SegmentSample(None, str(i), note), [i])
+            else:
+                self.add_sample(SegmentSample('%s/%d.png' % (self.imgdir, i), str(i), note), [i])
+                # write img to imgdir
+                cv2.imwrite('%s/%d.png' % (self.imgdir, i), img)
+                # write box map to boxdir
+                cv2.imwrite('%s/%d.png' % (self.boxdir, i), 127*GroundTruthViewer().visit(note))
+                # write i and the note to index
+                f.write('%d %s\n' % (i, BBoxPrinter.print_note(note)))
             if verbose:
                 print('created %d' % i)
+        if self.topdir is not None:
+            f.close()
                 
         self.sort_samples(msb, tabulate, sort)
         

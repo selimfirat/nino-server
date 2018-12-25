@@ -19,13 +19,16 @@ class BBoxNormalizer(BBoxVisitor):
 
 class BBoxDisplay(BBoxVisitor):
     'Generate mask displaying each bbox in a note.'
-    def __init__(self):
+    def __init__(self, maxd=5, font=cv2.FONT_HERSHEY_SIMPLEX, scale=1, drawbox=False, clearbox=False):
+        self.maxd = maxd
+        self.font = font
+        self.scale = scale
+        self.drawbox = drawbox # whether to draw boundaries around boxes
+        self.clearbox = clearbox # whether to clear boxes before writing text on them
+    def visit_note(self, bbox, res=None, *args, **kwargs):
         self.depth = 0
-        self.maxd = 10
-        self.font = cv2.FONT_HERSHEY_SIMPLEX
-        self.scale = 1
-    def visit_note(self, bbox, *args, **kwargs):
-        res = np.zeros(bbox.annot.image.shape + (3,))
+        if res is None:
+            res = np.zeros(bbox.annot.image.shape + (3,))
         super(BBoxDisplay, self).visit_note(bbox, res, *args, **kwargs)
         return res
     def visit_children(self, bbox, *args, **kwargs):
@@ -33,17 +36,55 @@ class BBoxDisplay(BBoxVisitor):
         super(BBoxDisplay, self).visit_children(bbox, *args, **kwargs)
         self.depth -= 1
     def visit_bbox(self, bbox, res, *args, **kwargs):
-        thickness = self.maxd - self.depth
-        if thickness < 2:
-            thickness = 2
-        res = cv2.rectangle(res, (bbox.rect.x0, bbox.rect.y1), 
-                                 (bbox.rect.x1, bbox.rect.y0), (255,0,0), thickness)
+        if self.drawbox:
+            thickness = self.maxd - self.depth
+            if thickness < 2:
+                thickness = 2
+            res = cv2.rectangle(res, (bbox.rect.x0-thickness, bbox.rect.y1+thickness), 
+                                     (bbox.rect.x1+thickness, bbox.rect.y0-thickness), (127,0,0), thickness)
         self.visit_children(bbox, res, *args, **kwargs)
-    def visit_word(self, bbox, res, *args, **kwargs):
+    def visit_text(self, bbox, res, *args, **kwargs):
         self.visit_bbox(bbox, res, *args, **kwargs)
-        baseline, _ = cv2.getTextSize(bbox.annot.text, self.font, self.scale, 3)
-        scale = self.scale * min([(bbox.rect.x1 - bbox.rect.x0)/baseline[0],
-                                  (bbox.rect.y1 - bbox.rect.y0)/baseline[1]])
-        res = cv2.putText(res, bbox.annot.text, (bbox.rect.x0, bbox.rect.y0), 
-                          self.font, scale, 3)
-        
+        if not bbox.children:
+            if self.clearbox: # fill box white before writing text
+                res = cv2.rectangle(res, (bbox.rect.x0, bbox.rect.y1), 
+                                         (bbox.rect.x1, bbox.rect.y0), (255,255,255), -1)
+            
+            # compute scale of text to fit in box
+            baseline, _ = cv2.getTextSize(str(bbox.annot), self.font, self.scale, 10)
+            scale = self.scale * min([(bbox.rect.x1 - bbox.rect.x0)/baseline[0],
+                                      (bbox.rect.y1 - bbox.rect.y0)/baseline[1]])
+            
+            # compute lower left corner of text
+            height = bbox.rect.y1 - bbox.rect.y0
+            if self.clearbox:
+                height = cv2.getTextSize(str(bbox.annot), self.font, scale, 10)[0][1]
+            
+            # write text
+            res = cv2.putText(res, str(bbox.annot), (bbox.rect.x0, bbox.rect.y0+height), 
+                              self.font, scale, 10)
+
+class BBoxPrinter(BBoxVisitor):
+    def print_note(note):
+        return BBoxPrinter().visit(note)
+    def read_note(string):
+        return eval(string) # VERY dangerous
+    def visit_bbox(self, bbox, ident='BBox', arglist='annot=None', *args, **kwargs):
+        children = self.visit_children(bbox, *args, init=[], op=(lambda a, b: a + [b]))
+        children = '[%s]' % ', '.join(children)
+        return '%s(rect=%s, c=%s, image=None, %s, children=%s)' % (ident, bbox.rect, bbox.c, arglist, children)
+    def visit_note(self, bbox, *args, **kwargs):
+        children = self.visit_children(bbox, *args, init=[], op=(lambda a, b: a + [b]))
+        children = '[%s]' % ', '.join(children)
+        return 'Note(rect=%s, image=None, children=%s)' % (bbox.rect, children)
+    def visit_text(self, bbox, ident='TextBBox', arglist=None, *args, **kwargs):
+        text = '' if bbox.annot.text == [''] else '\\n' % bbox.annot.text
+        if arglist is None:
+            arglist = 'text=\'\'\'%s\'\'\'' % text
+        return self.visit_bbox(bbox, ident=ident, arglist=arglist, *args, **kwargs)
+    def visit_line(self, bbox, *args, **kwargs):
+        return self.visit_text(bbox, ident='LineBBox', *args, **kwargs)
+    def visit_word(self, bbox, *args, **kwargs):
+        return self.visit_text(bbox, ident='WordBBox', *args, **kwargs)
+    def visit_eqn(self, bbox, *args, **kwargs):
+        return self.visit_bbox(bbox, ident='EqnBBox', arglist='latex=\'\'\'%s\'\'\''%bbox.annot.text[0], *args, **kwargs)

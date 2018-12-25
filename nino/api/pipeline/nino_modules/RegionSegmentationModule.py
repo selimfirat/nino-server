@@ -11,7 +11,6 @@ class RegionSegmentationModule(NinoModule):
 
     def apply_module(self, nino_obj):
         print("Segmenting Regions with: " + self.param1 + " " + self.param2 + "...")
-        #output = "Segmented Regions Output"
         nino_obj.set(self.process_name, ImageOps.invert(nino_obj.get_initial_input()))
 
     def get_requirements_list(self):
