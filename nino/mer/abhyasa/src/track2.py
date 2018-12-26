@@ -5,12 +5,11 @@ from skimage.io import imread
 from matplotlib import pyplot as plt
 from skimage.morphology import skeletonize
 from skimage.filters import gaussian, threshold_minimum
+from predictor_svm_cnn_combined import predict_label
 import sys
 import os
-sys.path.insert(0, '../src')
-from predictor_svm_cnn_combined import predict_label
-sys.path.insert(0, '../..')
-from bbox import bbox as bb
+# sys.path.insert(0, '../..')
+# from bbox import bbox as bb
 
 White = [255, 255, 255]
 labels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
@@ -21,6 +20,9 @@ Y_cord = []
 W_cord = []
 H_cord = []
 
+# in_path = sys.argv[1]
+img_path = os.path.dirname(__file__)+'/../digitRecognition/'
+in_path = 'input.png'
 
 class Node(object):
 	def __init__(self, top=None, bottom=None, nxt=None, parent=None, value=None, label=None):
@@ -33,21 +35,22 @@ class Node(object):
 
 
 def thinning(image_abs_path, i):
-	grayscale_img = imread(image_abs_path, as_gray=True)
+	grayscale_img = imread(img_path+image_abs_path, as_gray=True)
 	gaussian_blur = gaussian(grayscale_img, sigma=1)
 	thresh_sauvola = threshold_minimum(gaussian_blur)
 	binary_img = gaussian_blur < thresh_sauvola
+	# binary_img = cv2.adaptiveThreshold(gaussian_blur.astype(np.uint8), 255, 1, 1, 11, 2)
 	thinned_img = skeletonize(binary_img)
 	thinned_img = thinned_img == 0
-	plt.imsave('output.png', thinned_img, format="png", cmap="hot")
-	plt.imsave('output_'+str(i)+'.png', thinned_img, format="png", cmap="hot")
+	plt.imsave(img_path+'output.png', thinned_img, format="png", cmap="hot")
+	plt.imsave(img_path+'output_'+str(i)+'.png', thinned_img, format="png", cmap="hot")
 
 
 def crop(image_path, coords, saved_location, i):
-	image_obj = Image.open(image_path)
+	image_obj = Image.open(img_path+image_path)
 	cropped_image = image_obj.crop(coords)
-	cropped_image.save(saved_location)
-	cropped_image.save("_ppt"+str(i)+".png")
+	cropped_image.save(img_path+saved_location)
+	cropped_image.save(img_path+"_ppt"+str(i)+".png")
 
 
 def printTree(start):
@@ -66,8 +69,8 @@ def printTree(start):
 
 
 def squareit(i):
-	crop(sys.argv[1], (X_cord[i], -Y_cord[i]-H_cord[i], X_cord[i] + W_cord[i], -Y_cord[i]), "output.png", i)
-	img1 = cv2.imread('output.png')
+	crop(in_path, (X_cord[i], -Y_cord[i]-H_cord[i], X_cord[i] + W_cord[i], -Y_cord[i]), "output.png", i)
+	img1 = cv2.imread(img_path+'output.png')
 	dif_abs = abs(int(W_cord[i]-H_cord[i]))
 	padding = int(dif_abs/2)
 	if W_cord[i] > H_cord[i]:
@@ -75,19 +78,23 @@ def squareit(i):
 	else:
 		padded_img = cv2.copyMakeBorder(img1, 0, 0, padding, dif_abs - padding, cv2.BORDER_CONSTANT, value=White)
 	
-	plt.imsave('_sqrd'+str(i)+'.png', padded_img, format="png", cmap="hot")
+	plt.imsave(img_path+'_sqrd'+str(i)+'.png', padded_img, format="png", cmap="hot")
 	padded_img= cv2.resize(padded_img, (45, 45))
 	# plt.imsave('final.jpg',new_image, format="jpg", cmap="hot")
 
-	plt.imsave('_small'+str(i)+'.png', padded_img, format="png", cmap="hot")
-	plt.imsave('output.png', padded_img, format="png", cmap="hot")
+	plt.imsave(img_path+'_small'+str(i)+'.png', padded_img, format="png", cmap="hot")
+	plt.imsave(img_path+'output.png', padded_img, format="png", cmap="hot")
 	thinning("output.png", i)
 
 
 def getlabels():
 	for i in range(0, len(X_cord)):
-		squareit(i)
-		labels[i] = predict_label(np.asarray(Image.open('output_'+str(i)+'.png').convert('L').resize((45, 45), Image.ANTIALIAS)).flatten())
+		try:
+			squareit(i)
+		except RuntimeError:
+			labels[i] = None
+			continue
+		labels[i] = predict_label(np.asarray(Image.open(img_path+'output_'+str(i)+'.png').convert('L').resize((45, 45), Image.ANTIALIAS)).flatten())
 		if labels[i] == 'geq' or labels[i] == 'j' or labels[i] == 'i' or labels[i] == '!' or labels[i] == '-':
 			Y_cord[i] = Y_cord[i]-(H_cord[i]/4.0)
 			H_cord[i] = H_cord[i]+(H_cord[i]/2.0)
@@ -105,7 +112,7 @@ def getlabels():
 					W_cord.pop(i-1)
 					H_cord.pop(i-1)		
 			squareit(i)
-			labels[i] = predict_label(np.asarray(Image.open('output_'+str(i)+'.png').convert('L').resize((45, 45), Image.ANTIALIAS)).flatten())
+			labels[i] = predict_label(np.asarray(Image.open(img_path+'output_'+str(i)+'.png').convert('L').resize((45, 45), Image.ANTIALIAS)).flatten())
 		if labels[i] == 'ascii_124':
 			labels[i] = '1'		
 		if labels[i] == 'times':
@@ -259,89 +266,3 @@ def locate_and_label(prev_node, curr_node, count):
 				return locate_and_label(prev_node.parent, curr_node, count)
 			return prev_node
 
-
-class MathExpRecognizer(bb.BBoxVisitor):
-	def __init__(self):
-		# TODO: add hidden states & learning rate epoch etc in constructor
-		pass
-
-	def visit_eqn(self, original_image, grayscale_image, img):
-		# img = cv2.imread(image) # Load the image
-		# gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) # convert to grayscale
-
-		# TODO: hayaletbeyazı
-		# alpha = 2.2  # contrast
-		# beta = 0  # brightness
-		# new_image = cv2.convertScaleAbs(gray, alpha=alpha, beta=beta)
-
-		enhancer_contrast = ImageEnhance.Contrast(Image.open(img))
-		enhancer_brightness = ImageEnhance.Brightness(Image.open(img))
-
-		for i in range(8):
-			factor = 1 + i / 3.0
-			enhancer_contrast.enhance(factor).show("Sharpness %f" % factor)
-		#for i in range(2):
-		factor = 1 + 1/2
-		enhancer_brightness.enhance(factor).show("Brightness %f" % factor)
-
-		grayscale_image = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2GRAY)
-
-		# smooth the image to avoid noises
-		gray = cv2.medianBlur(grayscale_image, 5)
-
-
-		# cv2.imshow('contrast im', new_image)
-		cv2.imshow('original gray', gray)
-
-
-
-
-		# Apply adaptive threshold
-		thresh = cv2.adaptiveThreshold(gray, 255, 1, 1, 11, 2)
-		thresh_color = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
-
-		# apply some dilation and erosion to join the gaps
-		thresh = cv2.dilate(thresh, None, iterations=3)
-		thresh = cv2.erode(thresh, None, iterations=2)
-		x, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-		contours = sorted(contours, key=lambda cont: cv2.boundingRect(cont)[0])
-
-		for cnt in contours:
-			x, y, w, h = cv2.boundingRect(cnt)
-			# print x;
-			if processcontour(x, y, w, h) == 1:
-				# get labels of this rectangle
-				X_cord.append(x)
-				Y_cord.append(-(y+h))
-				W_cord.append(w)
-				H_cord.append(h)
-				cv2.rectangle(original_image, (x, y), (x+w, y+h), (0, 255, 0), 2)
-			else:
-				cv2.rectangle(original_image, (x, y), (x+w, y+h), (0, 0, 255), 2)
-
-		getlabels()
-
-		start = Node(value=0, label=labels[0])
-		parent_avg = (Y_cord[0] + (H_cord[0]/2))
-		prev_node = start
-		print("Before locate")
-		cv2.imshow('img', original_image)
-		cv2.waitKey(10000)
-		print("About to locate")
-
-		for i in range(1, len(X_cord)):
-			curr_node = Node(value=i, label=labels[i])
-			prev_node = locate_and_label(prev_node, curr_node, i)
-			# print "_L-------------------",prev_node.label
-
-		print("About to print")
-		print("$ ", end="")
-		printTree(start)
-		print(" $")
-
-		return X_cord, Y_cord, W_cord, H_cord
-
-
-print("Current test for math exp rec: ")
-mr = MathExpRecognizer()
-mr.visit_eqn(cv2.imread(sys.argv[1]), cv2.cvtColor(cv2.imread(sys.argv[1]), cv2.COLOR_BGR2GRAY), sys.argv[1])

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 np.set_printoptions(threshold=np.nan)
 
+path = os.path.dirname(__file__)
 
 class CNN1(object):
 	def __init__(self, train_img=None, train_labels=None, test_img=None, test_labels=None,b_size=None,num_epoch=None):
@@ -85,7 +86,7 @@ class CNN1(object):
 		total_classes = count
 		test_labels = np_utils.to_categorical(self.test_labels,total_classes)
 		sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-		clf = CNN().build(img_rows,img_columns,1,total_classes,'model.h5')
+		clf = CNN().build(img_rows,img_columns,1,total_classes,path+'/model.h5')
 		clf.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
 		loss, accuracy = clf.evaluate(test_data, test_labels, batch_size=self.b_size, verbose=1)
 		print('Accuracy of Model: {:.2f}%'.format(accuracy * 100))
@@ -94,11 +95,11 @@ class CNN1(object):
 		img_rows,img_columns = 45,45
 		count = 0
 		label_map={}
-		for folder in os.listdir("../src/data"):
+		for folder in os.listdir(path+"/data"):
 			label_map[folder]=count
 			count+=1
 		total_classes = count
-		clf = CNN().build(img_rows,img_columns,1,total_classes,'model.h5')
+		clf = CNN().build(img_rows,img_columns,1,total_classes,path+'/model.h5')
 		probs = clf.predict(test_img)
 		print(probs)
 		prediction = probs.argmax(axis=1)
@@ -109,11 +110,11 @@ class CNN1(object):
 		img_rows,img_columns = 45,45
 		count = 0
 		label_map={}
-		for folder in os.listdir("../src/data"):
+		for folder in os.listdir(path+"/data"):
 			label_map[folder]=count
 			count+=1
 		total_classes = count
-		clf = CNN().build(img_rows,img_columns,1,total_classes,'../src/model.h5')
+		clf = CNN().build(img_rows,img_columns,1,total_classes,path+'/model.h5')
 		probs = clf.predict(img)
 		return probs
 	def plot_model_history(self,model_history):

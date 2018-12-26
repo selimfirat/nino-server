@@ -5,6 +5,8 @@ from PIL import Image
 import os
 import sys
 
+path = os.path.dirname(__file__)
+
 def predict_label(img):
 	#svm_classifier = SVM()
 	cnn_classifier = CNN1()
@@ -21,7 +23,7 @@ def predict_label(img):
 	#probs = (probs_svm + probs_cnn)/2.0
 	feature_map={}
 	count = 0
-	for folder in os.listdir("../src/data"):
+	for folder in os.listdir(path+"/data"):
 		# print(folder+":"+str(count))
 		feature_map[count]=folder
 		count+=1
@@ -30,7 +32,7 @@ def predict_label(img):
 	#print(feature_map[max_prob_index], probs_cnn[0][max_prob_index] )
 	
 	count = 0
-	for folder in os.listdir("../src/data"):
+	for folder in os.listdir(path+"/data"):
 		# print(folder+":"+str(count))
 		feature_map[count]=folder
 		#print(feature_map[count], '\t',probs_cnn[0][count])
