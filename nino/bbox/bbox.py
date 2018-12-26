@@ -6,11 +6,10 @@
 # the image may also be passed to the visitor through keyword arguments, as well as the parent note
 
 import json
-import sys
 import numpy as np
-sys.path.insert(0, '..')
-from utils import imgprep as ip
-from utils.rect import *
+
+from ..utils import imgprep as ip
+from ..utils.rect import *
 
 # bbox visitor: visits each subclass of bbox, annotates it and possibly returns an output
 # a note itself may be a bbox perhaps
@@ -18,9 +17,15 @@ class BBoxVisitor:
     def visit(self, bbox, *args, **kwargs):
         return bbox.accept(self, *args, **kwargs)
     def visit_children(self, bbox, *args, **kwargs): # may override this method to update parent after visiting children
-        res = None
+        init = None
+        op = lambda a, b: b
+        if 'init' in kwargs:
+            init = kwargs['init']
+        if 'op' in kwargs:
+            op = kwargs['op']
+        res = init
         for b in bbox.children:
-            res = self.visit(b, *args, **kwargs)
+            res = op(res, self.visit(b, *args, **kwargs))
         return res
     def visit_bbox(self, bbox, *args, **kwargs): # default
         return self.visit_children(bbox, *args, **kwargs)
@@ -29,9 +34,9 @@ class BBoxVisitor:
     def visit_text(self, bbox, *args, **kwargs):
         return self.visit_bbox(bbox, *args, **kwargs)
     def visit_line(self, bbox, *args, **kwargs):
-        return self.visit_bbox(bbox, *args, **kwargs)
+        return self.visit_text(bbox, *args, **kwargs)
     def visit_word(self, bbox, *args, **kwargs):
-        return self.visit_bbox(bbox, *args, **kwargs)
+        return self.visit_line(bbox, *args, **kwargs)
     def visit_eqn(self, bbox, *args, **kwargs):
         return self.visit_bbox(bbox, *args, **kwargs)
     # etc.
@@ -43,6 +48,7 @@ class BBoxVisitor:
         if image is not None:
             return ip.crop(image, bbox.rect)
         return None
+
 
 
 class BBox:
@@ -80,8 +86,8 @@ class BBox:
         return visitor.visit_bbox(self, *args, **kwargs)
 
 class Note(BBox):
-    def __init__(self, image, **kwargs):
-        super(Note, self).__init__(Rect(0,0,-1,-1), image=image)
+    def __init__(self, image, rect=Rect(0,0,-1,-1), **kwargs):
+        super(Note, self).__init__(rect, image=image, **kwargs)
     
     def accept(self, visitor, *args, **kwargs):
         if 'image' not in kwargs:
@@ -104,7 +110,7 @@ class TextBBox(BBox): # may be broken into lines, which may themselves be compos
             return '\n'.join(map(str,self.text))
     
     def __init__(self, rect, c=100, text='', image=None, children=None):
-        super(TextBBox, self).__init__(rect, c, TextBBox.TextBBoxAnnot([text], rect, image), children)
+        super(TextBBox, self).__init__(rect, c, TextBBox.TextBBoxAnnot([text], image), children)
     
     def accept(self, visitor, *args, **kwargs):
         return visitor.visit_text(self, *args, **kwargs)
@@ -115,7 +121,7 @@ class LineBBox(TextBBox): # composed of words or inline expressions
             return ' '.join(map(str,self.text))
     
     def __init__(self, rect, c=100, text='', image=None, children=None):
-        super(LineBBox, self).__init__(rect, c, LineBBox.LineBBoxAnnot([text], rect, image), children)
+        BBox.__init__(self, rect, c, LineBBox.LineBBoxAnnot([text], image), children)
     
     def accept(self, visitor, *args, **kwargs):
         return visitor.visit_line(self, *args, **kwargs)
@@ -126,13 +132,17 @@ class WordBBox(TextBBox): # composed of words or inline expressions
             return ''.join(self.text)
     
     def __init__(self, rect, c=100, text='', image=None, children=None):
-        super(WordBBox, self).__init__(rect, c, WordBBox.WordBBoxAnnot([text], rect, image), children)
+        BBox.__init__(self, rect, c, WordBBox.WordBBoxAnnot([text], image), children)
     
     def accept(self, visitor, *args, **kwargs):
         return visitor.visit_word(self, *args, **kwargs)
 
 class EqnBBox(BBox): # composed of mathematical expressions that can span multiple lines
-    # TODO
+    # TODO special annot class perhaps
+    
+    def __init__(self, rect, c=100, latex='', image=None, children=None):
+        super(EqnBBox, self).__init__(rect, c, TextBBox.TextBBoxAnnot([latex], image), children)
+        
     def accept(self, visitor, *args, **kwargs):
         return visitor.visit_eqn(self, *args, **kwargs)
 
