@@ -24,8 +24,9 @@ class Rect:
         return (self.x1-self.x0)*(self.y1-self.y0)
     
     def rescale(self, scale):
-        return Rect(self.x0, self.y0, int(scale*self.x1 + (1-scale)*self.x0), 
-                                      int(scale*self.y1 + (1-scale)*self.y0))
+        return Rect(scale*self.x0, scale*self.y0, scale*self.x1, scale*self.y1)
+        # return Rect(self.x0, self.y0, int(scale*self.x1 + (1-scale)*self.x0), 
+        #                               int(scale*self.y1 + (1-scale)*self.y0))
     
     def intersects(self, other):
         return (self*other).area() > 0
@@ -37,6 +38,8 @@ class Rect:
         'Join of two rectangles'
         if isinstance(other, Number):
             return Rect(self.x0+other, self.y0+other, self.x1+other, self.y1+other)
+        if isinstance(other, tuple):
+            return Rect(self.x0+other[0], self.y0+other[1], self.x1+other[0], self.y1+other[1])
         if self.area() == 0:
             return other
         if other.area() == 0:

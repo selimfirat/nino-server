@@ -8,10 +8,11 @@ from ..utils import imgprep as ip, rect as rc
 from ..bbox import bbox as bb
 
 class LineSegmentor(bb.BBoxVisitor):
-    def __init__(self, downsample=4, r=3):
+    def __init__(self, downsample=4, r=3, combine=False):
         self.downsample = downsample
         self.ker = np.ones((r,r),np.uint8)
         self.r = r
+        self.combine = combine
         
     def visit_line(self, line, *args, **kwargs):
         # get image of line
@@ -37,7 +38,17 @@ class LineSegmentor(bb.BBoxVisitor):
         #                  rect.x1+self.r/2, rect.y1+self.r/2) for rect in rects]
         rects.sort(key=lambda rect: rect.x0) # sort rectangles, maybe first guarantee no rectangles overlap
         
+        # combine intersecting rectangles
+        if self.combine:
+            i = 0
+            while i+1 < len(rects):
+                if rects[i].intersects(rects[i+1]):
+                    rects[i] = rects[i] + rects[i+1]
+                    del rects[i+1]
+                else:
+                    i += 1
+        
         # for each rectangle, add new WordBBox to line.children
         for rect in rects:
-            line.add_child(bb.WordBBox(rect))
+            line.add_child(bb.WordBBox(rect+(line.rect.x0,line.rect.y0)))
         

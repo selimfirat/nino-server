@@ -87,7 +87,7 @@ class BBox:
 
 class Note(BBox):
     def __init__(self, image, rect=Rect(0,0,-1,-1), **kwargs):
-        super(Note, self).__init__(rect, image=image, **kwargs)
+        super(Note, self).__init__(Rect(0,0,*image.T.shape), image=image, **kwargs)
     
     def accept(self, visitor, *args, **kwargs):
         if 'image' not in kwargs:
