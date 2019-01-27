@@ -1,30 +1,20 @@
 from .nino_module import NinoModule
 import cv2, os, sys
 
-sys.path.append(os.path.abspath('../..'))
-import nino.abhyasa.digitRecognition.track2 as dr
 import nino.bbox.layout as ly
-
+import nino.mer.mer as mer
 
 class MathExpRecognition(NinoModule):
     def __init__(self):
         self.process_name = 'math_exp_recognition'
-        self.mer = dr.MathExpRecognizer()
+        self.mer = mer.MathExpRecognizer()
 
     def apply_module(self, nino_obj):
-        # first convert layout into bboxes
-        img = cv2.imread(nino_obj.get_initial_input(), cv2.IMREAD_GRAYSCALE)
-        note = ly.parse(nino_obj.get('layout_analysis'), image=img)
-
-        # self.mer.visit(note)
-        # TODO: Talk with @Ata about how to integrate this into visit(note)!
-        self.mer.visit_eqn(nino_obj.get_initial_input(), img)
-
-        # finally record the note object
+        note = nino_obj.get('text_recognition')
+        self.mer.visit(note)
         nino_obj.set(self.process_name, note)
 
     def get_requirements_list(self):
-        return  # TODO: I really have no idea about what this is about
-
+        return 'text_recognition' # getting note object from text recognizer
 
 math_exp = MathExpRecognition

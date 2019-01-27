@@ -19,12 +19,15 @@ class BBoxNormalizer(BBoxVisitor):
 
 class BBoxDisplay(BBoxVisitor):
     'Generate mask displaying each bbox in a note.'
-    def __init__(self, maxd=5, font=cv2.FONT_HERSHEY_SIMPLEX, scale=1, drawbox=False, clearbox=False):
+    def __init__(self, maxd=5, font=cv2.FONT_HERSHEY_SIMPLEX, scale=1, 
+                 drawbox=False, clearbox=False, printtext=False, printeqn=False):
         self.maxd = maxd
         self.font = font
         self.scale = scale
         self.drawbox = drawbox # whether to draw boundaries around boxes
         self.clearbox = clearbox # whether to clear boxes before writing text on them
+        self.printtext = printtext
+        self.printeqn = printeqn
     def visit_note(self, bbox, res=None, *args, **kwargs):
         self.depth = 0
         if res is None:
@@ -43,26 +46,32 @@ class BBoxDisplay(BBoxVisitor):
             res = cv2.rectangle(res, (bbox.rect.x0-thickness, bbox.rect.y1+thickness), 
                                      (bbox.rect.x1+thickness, bbox.rect.y0-thickness), (127,0,0), thickness)
         self.visit_children(bbox, res, *args, **kwargs)
+    def visit_eqn(self, bbox, res, *args, **kwargs):
+        if self.printeqn:
+            return self.visit_text(bbox, res, *args, **kwargs)
+        return self.visit_bbox(bbox, res, *args, **kwargs)
     def visit_text(self, bbox, res, *args, **kwargs):
         self.visit_bbox(bbox, res, *args, **kwargs)
-        if not bbox.children:
+        if not bbox.children and self.printtext:
+            thickness = 2
+            
             if self.clearbox: # fill box white before writing text
                 res = cv2.rectangle(res, (bbox.rect.x0, bbox.rect.y1), 
                                          (bbox.rect.x1, bbox.rect.y0), (255,255,255), -1)
             
             # compute scale of text to fit in box
-            baseline, _ = cv2.getTextSize(str(bbox.annot), self.font, self.scale, 10)
+            baseline, _ = cv2.getTextSize(str(bbox.annot), self.font, self.scale, thickness)
             scale = self.scale * min([(bbox.rect.x1 - bbox.rect.x0)/baseline[0],
                                       (bbox.rect.y1 - bbox.rect.y0)/baseline[1]])
             
             # compute lower left corner of text
             height = bbox.rect.y1 - bbox.rect.y0
             if self.clearbox:
-                height = cv2.getTextSize(str(bbox.annot), self.font, scale, 10)[0][1]
+                height = cv2.getTextSize(str(bbox.annot), self.font, scale, thickness)[0][1]
             
             # write text
             res = cv2.putText(res, str(bbox.annot), (bbox.rect.x0, bbox.rect.y0+height), 
-                              self.font, scale, 10)
+                              self.font, scale, (0,0,0), thickness)
 
 class BBoxPrinter(BBoxVisitor):
     def print_note(note):
