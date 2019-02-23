@@ -26,11 +26,6 @@ from .pipeline import M
 from PIL import Image
 import pathlib
 
-"""import socket
-host = socket.gethostname()  # get local machine name
-port = 5432  # Make sure it's within the > 1024 $$ <65535 range
-s = socket.socket()
-s.connect((host, port))"""
 
 dir_notes = "notes/"
 class NoteList(mixins.ListModelMixin,
@@ -71,8 +66,9 @@ class NoteList(mixins.ListModelMixin,
         initial_image = Image.open(dir_notes + 'original_images/' + initial_image_str)
 
         modules = [
-            crs[M.PREPROCESS](),
-            crs[M.REGION_SEGMENTATION]("param1", "param2")
+            crs[M.LAYOUT_ANALYSIS]()
+            #crs[M.PREPROCESS](),
+            #crs[M.REGION_SEGMENTATION]("param1", "param2")
         ]
         
         # Create NinoObject with a name and initial image

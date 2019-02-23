@@ -1,2 +1,0 @@
-class RequirementException(Exception):
-    pass
