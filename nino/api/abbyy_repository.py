@@ -1,5 +1,5 @@
 import requests
-from abbyy_sdk import *
+from .abbyy_sdk import *
 import os
 import time
 from xml.dom import minidom
@@ -25,7 +25,7 @@ class AbbyyRepository:
             else:
                 raise
             
-        print(self.processor.ApplicationId, self.processor.Password)
+        # print(self.processor.ApplicationId, self.processor.Password)
     
     def process_image(self, source_image_path):
         print("Uploading..")

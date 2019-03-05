@@ -17,17 +17,18 @@ from rest_framework.status import (
     HTTP_200_OK
 )
 
-from .pipeline.nino_object import NinoObject
-from .pipeline.nino_utils import *
-#from .pipeline.RequestHandleThread import RequestHandleThread
-from .pipeline.nino_pipeline import NinoPipeline
-from .pipeline import M
+import base64
 
 from PIL import Image
 import pathlib
 
+from .abbyy_repository import AbbyyRepository
+
 
 dir_notes = "notes/"
+abby = AbbyyRepository("ocrappaccount", "xkwNVKxJWduwFXUVHrBEZZmT")
+    
+
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
                      generics.GenericAPIView):
@@ -50,8 +51,6 @@ class NoteList(mixins.ListModelMixin,
 
     def post(self, request, *args, **kwargs):
         req = self.create(request, *args, **kwargs)
-        load_modules()
-        crs = get_class_references()
         
         print(req.__dict__)
         
@@ -63,41 +62,10 @@ class NoteList(mixins.ListModelMixin,
         print('Running request for user ' + username +
         " with request id #" + request_id)
 
-        initial_image = Image.open(dir_notes + 'original_images/' + initial_image_str)
+        image_path = dir_notes + 'original_images/' + initial_image_str
+        res_ocr = abby.process_image(source_image_path=image_path)
 
-        modules = [
-            crs[M.LAYOUT_ANALYSIS]()
-            #crs[M.PREPROCESS](),
-            #crs[M.REGION_SEGMENTATION]("param1", "param2")
-        ]
-        
-        # Create NinoObject with a name and initial image
-        no = NinoObject(request_id, initial_image) # Temp solution for com
-
-        # Create NinoPipeline with modules and NinoObject
-        np = NinoPipeline(no, modules)
-        np.run() # Start processsing
-
-        ########################################################################
-        # For debuging purposes
-        ########################################################################
-        path_request = dir_notes + 'processed_images/' + request_id + '/'
-        pathlib.Path(path_request).mkdir(parents=True, exist_ok=True)
-        for m in modules:
-            output_of_module = no.get(m.process_name)
-            output_of_module.save(path_request + m.process_name + ".jpg", "JPEG")
-        final_out = no.get_final_out()
-        final_out.save(path_request + "FINAL.jpg", "JPEG")
-        ########################################################################
-
-        print("Done processing!")
-        print("done")
-        
-        import base64
-        
-        with open(path_request + "FINAL.jpg", "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read())
-            req.__dict__['data']['image'] = encoded_string
+        req.__dict__['data']['ocr'] = res_ocr
             
         return req
 
