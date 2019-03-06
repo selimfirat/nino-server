@@ -65,7 +65,7 @@ class NoteList(mixins.ListModelMixin,
         image_path = dir_notes + 'original_images/' + initial_image_str
         res_ocr = abby.process_image(source_image_path=image_path)
 
-        req.__dict__['data']['ocr'] = res_ocr
+        req.__dict__['data']['lines'] = res_ocr
             
         return req
 
