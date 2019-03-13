@@ -18,6 +18,8 @@ from rest_framework.status import (
 )
 
 import base64
+import pke
+from nltk.corpus import stopwords
 
 from PIL import Image
 import pathlib
@@ -63,10 +65,53 @@ class NoteList(mixins.ListModelMixin,
         " with request id #" + request_id)
 
         image_path = dir_notes + 'original_images/' + initial_image_str
-        res_ocr = abby.process_image(source_image_path=image_path)
+        lines, images, paragraphs = abby.process_image(source_image_path=image_path)
 
-        req.__dict__['data']['lines'] = res_ocr
+        req.__dict__['data']['lines'] = lines
+        req.__dict__['data']['images'] = images
+        req.__dict__['data']['paragraphs'] = paragraphs
+        
+        all_text = "\n".join([par["text"] for par in paragraphs])
+
+        # 1. create a YAKE extractor.
+        extractor = pke.unsupervised.YAKE()
+
+        # 2. load the content of the document.
+        extractor.load_document(input=all_text,
+                                language='en',
+                                normalization=None)
+
+
+        # 3. select {1-3}-grams not containing punctuation marks and not
+        #    beginning/ending with a stopword as candidates.
+        stoplist = stopwords.words('english')
+        extractor.candidate_selection(n=3, stoplist=stoplist)
+
+        # 4. weight the candidates using YAKE weighting scheme, a window (in
+        #    words) for computing left/right contexts can be specified.
+        window = 2
+        use_stems = False # use stems instead of words for weighting
+        extractor.candidate_weighting(window=window,
+                                      stoplist=stoplist,
+                                      use_stems=use_stems)
+
+        # 5. get the 10-highest scored candidates as keyphrases.
+        #    redundant keyphrases are removed from the output using levenshtein
+        #    distance and a threshold.
+        threshold = 0.8
+        keyphrases_res = extractor.get_n_best(n=10, threshold=threshold)
+
+        keyphrases = []
+        for keyphrase, score in keyphrases_res:
+            keyphrase_dict = {
+                "keyphrase": keyphrase,
+                "score": score
+            }
             
+            keyphrases.append(keyphrase_dict)
+        
+        req.__dict__["data"]["keyphrases"] = keyphrases
+        
         return req
 
 class NoteDetail(mixins.RetrieveModelMixin,

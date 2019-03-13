@@ -49,7 +49,7 @@ class AbbyyRepository:
         print("Waiting..")
 
         while task.is_active():
-            time.sleep(3)
+            time.sleep(0.5)
             print(".")
             task = self.processor.get_task_status(task)
 
@@ -74,35 +74,79 @@ class AbbyyRepository:
         blocksxml = xmldoc.getElementsByTagName("page")[0].getElementsByTagName('block')
 
         lines = []
+        images = []
+        paragraphs = []
         for block in blocksxml:
-            textNodes = block.getElementsByTagName("text")
+            block_type = block.getAttribute("blockType")
+            
+            if block_type == "Text":
+                textNodes = block.getElementsByTagName("text")
 
-            if len(textNodes) == 0:
-                continue
+                if len(textNodes) == 0:
+                    continue
 
-            pars = textNodes[0].getElementsByTagName("par")
+                pars = textNodes[0].getElementsByTagName("par")
 
-            for par in pars:
-                linesObj = par.getElementsByTagName("line")
-                for lineObj in linesObj:
-                    l, b, r, t = int(lineObj.getAttribute("l")), int(lineObj.getAttribute("t")), int(lineObj.getAttribute("r")), int(lineObj.getAttribute("b"))
-                    charsObj = lineObj.getElementsByTagName("formatting")[0].getElementsByTagName("charParams")
-                    lineText = ""
-                    for charObj in charsObj:
+                for par in pars:
+                    linesObj = par.getElementsByTagName("line")
+                    par_lines = []
+                    for lineObj in linesObj:
+                        l, b, r, t = int(lineObj.getAttribute("l")), int(lineObj.getAttribute("t")), int(lineObj.getAttribute("r")), int(lineObj.getAttribute("b"))
+                        charsObj = lineObj.getElementsByTagName("formatting")[0].getElementsByTagName("charParams")
+                        lineText = ""
+                        for charObj in charsObj:
 
-                        lineText += charObj.firstChild.nodeValue
+                            lineText += charObj.firstChild.nodeValue
 
-                    line_dict = {
-                        "text": lineText,
-                        "left": l,
-                        "top": t,
-                        "right": r,
-                        "bottom": b
+                        line_dict = {
+                            "text": lineText,
+                            "left": l,
+                            "top": t,
+                            "right": r,
+                            "bottom": b
+                        }
+
+                        par_lines.append(line_dict)
+                    lines.extend(par_lines)
+                    
+                    par_text = ""
+                    par_left = 9999999
+                    par_right = -9999999
+                    par_top = 9999999
+                    par_bottom = -9999999
+                    for par_line in par_lines:
+                        par_text += par_line["text"] + " \n "
+                        par_left = min(par_line["left"], par_left)
+                        par_right = max(par_line["right"], par_right)
+                        par_top = min(par_line["top"], par_top)
+                        par_bottom = max(par_line["bottom"], par_bottom)
+                    
+                    paragraph_dict = {
+                        "text": par_text,
+                        "left": par_left,
+                        "top": par_top,
+                        "right": par_right,
+                        "bottom": par_bottom
                     }
+                    
+                    if par_text != "":
+                        paragraphs.append(paragraph_dict)
+                    
+            elif block_type == "Picture":
+                l, b, r, t = int(block.getAttribute("l")), int(block.getAttribute("t")), int(block.getAttribute("r")), int(block.getAttribute("b"))
+                
+                image_dict = {
+                            "left": l,
+                            "top": t,
+                            "right": r,
+                            "bottom": b
+                        }
+                
+                images.append(image_dict)
 
-                    lines.append(line_dict)
 
-        return lines
+        
+        return lines, images, paragraphs
         
 if __name__ == "__main__":
 

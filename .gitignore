@@ -1,3 +1,5 @@
+*.jpg
+*.xml
 nino/api/migrations
 notes
 media
