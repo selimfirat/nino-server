@@ -1,0 +1,5 @@
+name: nino
+channels:
+  - defaults
+prefix: /home/yilmazselimfirat3/anaconda3/envs/nino
+

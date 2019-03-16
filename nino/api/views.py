@@ -20,6 +20,9 @@ from rest_framework.status import (
 import base64
 import pke
 from nltk.corpus import stopwords
+import anago
+from anago.utils import download, load_data_and_labels
+
 
 from PIL import Image
 import pathlib
@@ -111,6 +114,16 @@ class NoteList(mixins.ListModelMixin,
             keyphrases.append(keyphrase_dict)
         
         req.__dict__["data"]["keyphrases"] = keyphrases
+        
+        
+        ner_url = 'https://s3-ap-northeast-1.amazonaws.com/dev.tech-sketch.jp/chakki/public/conll2003_en.zip'
+
+        weights, params, preprocessor = download(ner_url)
+        ner_model = anago.Sequence.load(weights, params, preprocessor)
+
+        entities = ner_model.analyze(all_text)["entities"]
+
+        req.__dict__["data"]["entities"] = entities
         
         return req
 
