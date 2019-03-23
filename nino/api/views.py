@@ -28,11 +28,12 @@ from PIL import Image
 import pathlib
 
 from .abbyy_repository import AbbyyRepository
+from .mathpix import MathpixRepository
 
 
 dir_notes = "notes/"
 abby = AbbyyRepository("ocrappaccount", "xkwNVKxJWduwFXUVHrBEZZmT")
-    
+mpix = MathpixRepository()
 
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
@@ -69,10 +70,15 @@ class NoteList(mixins.ListModelMixin,
 
         image_path = dir_notes + 'original_images/' + initial_image_str
         lines, images, paragraphs = abby.process_image(source_image_path=image_path)
+        lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, 
+                                                                                   jres=(lines, images, paragraphs))
 
         req.__dict__['data']['lines'] = lines
         req.__dict__['data']['images'] = images
         req.__dict__['data']['paragraphs'] = paragraphs
+        req.__dict__['data']['equations'] = equations
+        req.__dict__['data']['tables'] = tables
+        req.__dict__['data']['figures'] = figures
         
         all_text = "\n".join([par["text"] for par in paragraphs])
 
