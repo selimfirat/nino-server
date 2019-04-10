@@ -9,10 +9,7 @@ class Wikifier:
         
         page = list(res["query"]["pages"].items())[0]
         
-        print(page)
-        page_id = int(page[0])
-        
-        
+        page_id = int(page[0])        
         
         if page_id == -1:
             return None
