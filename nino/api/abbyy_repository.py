@@ -151,7 +151,7 @@ class AbbyyRepository:
 if __name__ == "__main__":
 
     # NinoNoteApp", "m2lyxzgZOaKmKWygyRGohxKD
-    abby = AbbyyRepository("ocrappaccount", "xkwNVKxJWduwFXUVHrBEZZmT")
+    abby = AbbyyRepository("testsdaads", "rcFeQe5N3kRGiZx4ZbLSIuJu")
     
     res = abby.process_image(source_image_path="temp_sample/MobPhoto_2.jpg")
     
