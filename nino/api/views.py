@@ -22,18 +22,25 @@ import pke
 from nltk.corpus import stopwords
 import anago
 from anago.utils import download, load_data_and_labels
-
+from .wikifier import Wikifier
 
 from PIL import Image
 import pathlib
 
 from .abbyy_repository import AbbyyRepository
-from .mathpix import MathpixRepository
+# Temporarily disabled due to dependencies
+# from .mathpix import MathpixRepository
+# mpix = MathpixRepository()
 
+        
+ner_url = 'https://s3-ap-northeast-1.amazonaws.com/dev.tech-sketch.jp/chakki/public/conll2003_en.zip'
+
+weights, params, preprocessor = download(ner_url)
+ner_model = anago.Sequence.load(weights, params, preprocessor)
 
 dir_notes = "notes/"
-abby = AbbyyRepository("ocrappaccount", "xkwNVKxJWduwFXUVHrBEZZmT")
-mpix = MathpixRepository()
+abby = AbbyyRepository("testsdaads", "13JgRczOS+nmjkn80ewUwXxl")
+wikifier = Wikifier()
 
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
@@ -70,15 +77,20 @@ class NoteList(mixins.ListModelMixin,
 
         image_path = dir_notes + 'original_images/' + initial_image_str
         lines, images, paragraphs = abby.process_image(source_image_path=image_path)
-        lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, 
-                                                                                   jres=(lines, images, paragraphs))
+        
+        # Temporarily disabled due to dependencies
+        # lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
 
         req.__dict__['data']['lines'] = lines
         req.__dict__['data']['images'] = images
         req.__dict__['data']['paragraphs'] = paragraphs
+        
+        # Temporarily disabled due to dependencies
+        """
         req.__dict__['data']['equations'] = equations
         req.__dict__['data']['tables'] = tables
         req.__dict__['data']['figures'] = figures
+        """
         
         all_text = "\n".join([par["text"] for par in paragraphs])
 
@@ -110,24 +122,23 @@ class NoteList(mixins.ListModelMixin,
         threshold = 0.8
         keyphrases_res = extractor.get_n_best(n=10, threshold=threshold)
 
+        
         keyphrases = []
         for keyphrase, score in keyphrases_res:
             keyphrase_dict = {
                 "keyphrase": keyphrase,
-                "score": score
+                "score": score,
+                "info": wikifier.get_entity_info(keyphrase)
             }
             
             keyphrases.append(keyphrase_dict)
-        
+
+
         req.__dict__["data"]["keyphrases"] = keyphrases
         
         
-        ner_url = 'https://s3-ap-northeast-1.amazonaws.com/dev.tech-sketch.jp/chakki/public/conll2003_en.zip'
-
-        weights, params, preprocessor = download(ner_url)
-        ner_model = anago.Sequence.load(weights, params, preprocessor)
-
-        entities = ner_model.analyze(all_text)["entities"]
+        entities = []
+        # entities = ner_model.analyze(all_text)["entities"]
 
         req.__dict__["data"]["entities"] = entities
         
