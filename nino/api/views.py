@@ -18,12 +18,11 @@ from rest_framework.status import (
 )
 
 import base64
-import pke
-from nltk.corpus import stopwords
-import anago
-from anago.utils import download, load_data_and_labels
+
 from .wikifier import Wikifier
 
+from .keyphrase_extractor import KeyPhraseExtractor
+from .ner_recognizer import NERRecognizer
 from PIL import Image
 import pathlib
 
@@ -31,16 +30,6 @@ from .abbyy_repository import AbbyyRepository
 # Temporarily disabled due to dependencies
 # from .mathpix import MathpixRepository
 # mpix = MathpixRepository()
-
-        
-ner_url = 'https://s3-ap-northeast-1.amazonaws.com/dev.tech-sketch.jp/chakki/public/conll2003_en.zip'
-
-weights, params, preprocessor = download(ner_url)
-ner_model = anago.Sequence.load(weights, params, preprocessor)
-
-dir_notes = "notes/"
-abby = AbbyyRepository("testsdaads", "13JgRczOS+nmjkn80ewUwXxl")
-wikifier = Wikifier()
 
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
@@ -64,6 +53,13 @@ class NoteList(mixins.ListModelMixin,
 
     def post(self, request, *args, **kwargs):
         req = self.create(request, *args, **kwargs)
+        ner = NERRecognizer()
+
+        keyphrase_extractor = KeyPhraseExtractor()
+
+        abby = AbbyyRepository("testsdaads", "13JgRczOS+nmjkn80ewUwXxl")
+        wikifier = Wikifier()
+
         
         print(req.__dict__)
         
@@ -72,10 +68,10 @@ class NoteList(mixins.ListModelMixin,
         initial_image_str = request_dict['image'][0]._get_name()
         username = req.__dict__['data']['owner'] #str(request.user)
         request_id = str(req.__dict__['data']['id'])
-        print('Running request for user ' + username +
-        " with request id #" + request_id)
+        print('Running request for user ' + username + " with request id #" + request_id)
+        dir_notes = "notes/"
 
-        image_path = dir_notes + 'original_images/' + initial_image_str
+        image_path = dir_notes + 'original_images/' + initial_image_str.replace(" ", "_")
         lines, images, paragraphs = abby.process_image(source_image_path=image_path)
         
         # Temporarily disabled due to dependencies
@@ -93,54 +89,16 @@ class NoteList(mixins.ListModelMixin,
         """
         
         all_text = "\n".join([par["text"] for par in paragraphs])
-
-        # 1. create a YAKE extractor.
-        extractor = pke.unsupervised.YAKE()
-
-        # 2. load the content of the document.
-        extractor.load_document(input=all_text,
-                                language='en',
-                                normalization=None)
-
-
-        # 3. select {1-3}-grams not containing punctuation marks and not
-        #    beginning/ending with a stopword as candidates.
-        stoplist = stopwords.words('english')
-        extractor.candidate_selection(n=3, stoplist=stoplist)
-
-        # 4. weight the candidates using YAKE weighting scheme, a window (in
-        #    words) for computing left/right contexts can be specified.
-        window = 2
-        use_stems = False # use stems instead of words for weighting
-        extractor.candidate_weighting(window=window,
-                                      stoplist=stoplist,
-                                      use_stems=use_stems)
-
-        # 5. get the 10-highest scored candidates as keyphrases.
-        #    redundant keyphrases are removed from the output using levenshtein
-        #    distance and a threshold.
-        threshold = 0.8
-        keyphrases_res = extractor.get_n_best(n=10, threshold=threshold)
-
         
-        keyphrases = []
-        for keyphrase, score in keyphrases_res:
-            keyphrase_dict = {
-                "keyphrase": keyphrase,
-                "score": score,
-                "info": wikifier.get_entity_info(keyphrase)
-            }
-            
-            keyphrases.append(keyphrase_dict)
 
-
+        keyphrases = keyphrase_extractor.get_keyphrases(all_text)
+        
+        for kp in keyphrases:
+            kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
+        
         req.__dict__["data"]["keyphrases"] = keyphrases
         
-        
-        entities = []
-        # entities = ner_model.analyze(all_text)["entities"]
-
-        req.__dict__["data"]["entities"] = entities
+        req.__dict__["data"]["entities"] = ner.get_ner_entities(all_text)
         
         return req
 

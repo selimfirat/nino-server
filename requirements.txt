@@ -9,3 +9,5 @@ pygments
 pydotplus
 django-extensions
 xmltodict
+anago
+git+https://github.com/boudinfl/pke.git
