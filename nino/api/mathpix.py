@@ -49,7 +49,7 @@ class MathpixRepository:
         textlines = [] # list of lines comprised only of text
         for line in lines:
             # crop image
-            x0, y0, x1, y1 = line['left'], line['top'], line['right'], line['bottom']
+            x0, y0, x1, y1 = line['left'], line['bottom'], line['right'], line['top']
             # cropped = img[y0:y1, x0:x1]
 
             # send request (may later do these in batch)
@@ -71,14 +71,14 @@ class MathpixRepository:
                 
                 conf = r['latex_confidence_rate'] # set thresholds perhaps
                 
-                equations.append({'text':text, 'latex':latex, 'conf':conf, 'left':x0, 'top':y0, 'right':x1, 'bottom':y1})
+                equations.append({'text':text, 'latex':latex, 'conf':conf, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
             else:
                 textlines.append(line)
         
         # check images
         for rect in images:
             # crop image
-            x0, y0, x1, y1 = rect['left'], rect['top'], rect['right'], rect['bottom']
+            x0, y0, x1, y1 = rect['left'], rect['bottom'], rect['right'], rect['top']
             # cropped = img[y0:y1, x0:x1]
 
             # send request (may later do these in batch)
@@ -96,19 +96,19 @@ class MathpixRepository:
                 conf = r['latex_confidence_rate']
                 
                 # may use bounding box returned in r['position'] to fine tune coordinates
-                tables.append({'latex':text, 'conf':conf, 'left':x0, 'top':y1, 'right':x1, 'bottom':y0})
+                tables.append({'latex':text, 'conf':conf, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
                 continue
             elif 'is_not_math' not in r['detection_list'] and not r['error']: # equation in standalone figure
                 text = r['latex_styled'] if 'latex_styled' in r else r['latex_normal'] # possibly analyze for text vs. eqn
                 conf = r['latex_confidence_rate']
                 
                 # may use bounding box returned in r['position'] to fine tune coordinates
-                equations.append({'latex':text, 'conf':conf, 'left':x0, 'top':y0, 'right':x1, 'bottom':y1})
+                equations.append({'latex':text, 'conf':conf, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
                 continue
             else: # may also check is_blank etc.
                 continue
 
-            figures.append({'type':typ, 'left':x0, 'top':y0, 'right':x1, 'bottom':y1})
+            figures.append({'type':typ, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
             
             
         # return lines, images, paragraphs, equations, tables, figures
