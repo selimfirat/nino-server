@@ -61,12 +61,7 @@ def read_image(image_file, bottom=0, top=0, left=0, right=0):
     return image
 
 
-def feature_dict(text, bound, confidence=0):
-    left = bound.vertices[0].x
-    right = bound.vertices[1].x
-    top = bound.vertices[0].y
-    bottom = bound.vertices[2].y
-
+def line_dict(text, bottom, top, left, right, confidence=0):
     if confidence == 0:
         dictionary = {
                 "text": text,
@@ -86,6 +81,26 @@ def feature_dict(text, bound, confidence=0):
             }
 
     return dictionary
+
+
+def feature_dict(text, bound, confidence=0):
+    left = bound.vertices[0].x
+    right = bound.vertices[1].x
+    top = bound.vertices[0].y
+    bottom = bound.vertices[2].y
+    dictionary = line_dict(text, bottom, top, left, right, confidence)
+
+    return dictionary
+
+
+def reset():
+    line_left = 9999999
+    line_right = -9999999
+    line_top = 9999999
+    line_bottom = -9999999
+    line = ''
+
+    return line, line_bottom, line_top, line_left, line_right
 
 
 class GCloudRepository:
@@ -114,23 +129,29 @@ class GCloudRepository:
             for block in page.blocks:
                 for paragraph in block.paragraphs:
                     para = ""
-                    line = ""
+                    line, line_bottom, line_top, line_left, line_right = reset()
                     for word in paragraph.words:
                         for symbol in word.symbols:
                             line += symbol.text
-                            # TODO: Fix bounding box of lines. it should be max of its symbol's bounding box.
+
+                            line_left = min(symbol.bounding_box.vertices[0].x, line_left)
+                            line_right = max(symbol.bounding_box.vertices[1].x, line_right)
+                            line_top = min(symbol.bounding_box.vertices[0].y, line_top)
+                            line_bottom = max(symbol.bounding_boxvertices[2].y, line_bottom)
 
                             if symbol.property.detected_break.type == breaks.SPACE:
                                 line += ' '
+
                             if symbol.property.detected_break.type == breaks.EOL_SURE_SPACE:
                                 line += ' '
-                                lines.append(feature_dict(line, symbol.bounding_box))
+                                lines.append(line(line, line_bottom, line_top, line_left, line_right))
                                 para += line
-                                line = ''
+                                line, line_bottom, line_top, line_left, line_right = reset()
+
                             if symbol.property.detected_break.type == breaks.LINE_BREAK:
-                                lines.append(feature_dict(line, symbol.bounding_box))
+                                lines.append(line_dict(line, line_bottom, line_top, line_left, line_right))
                                 para += line
-                                line = ''
+                                line, line_bottom, line_top, line_left, line_right = reset()
 
                     paragraphs.append(feature_dict(para, paragraph.bounding_box, paragraph.confidence))
 
@@ -217,8 +238,8 @@ if __name__ == '__main__':
 
     gcloud = GCloudRepository()
 
-    # paragraphs, lines, bounds = gcloud.process_document(args.input_file, args.bottom, args.top, args.left, args.right)
-    # print(paragraphs)
+    paragraphs, lines = gcloud.process_document(args.input_file, args.bottom, args.top, args.left, args.right)
+    print(lines)
 
-    labels = gcloud.get_image_labels(args.input_file, args.bottom, args.top, args.left, args.right)
-    print(labels)
+    # labels = gcloud.get_image_labels(args.input_file, args.bottom, args.top, args.left, args.right)
+    # print(labels)
