@@ -26,10 +26,15 @@ from .ner_recognizer import NERRecognizer
 from PIL import Image
 import pathlib
 
+
 from .abbyy_repository import AbbyyRepository
 # Temporarily disabled due to dependencies
 # from .mathpix import MathpixRepository
 # mpix = MathpixRepository()
+
+# GCloud: Disabled due to dependencies
+# from .gcloud import GCloudRepository
+
 
 class NoteList(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
@@ -76,6 +81,17 @@ class NoteList(mixins.ListModelMixin,
         
         # Temporarily disabled due to dependencies
         # lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
+
+        # GCloud: Disabled due to dependencies
+        # gcloud = GCloudRepository()
+        # lines, paragraphs, bounds = gcloud.process_document(image_path) # Can process a crop of the image if given bottom,top, left, right vertices
+        #
+        # TODO: Should choose between GCloud or Abbyy according to confidence
+        #
+        # images_with_labels = []
+        # for image in images:
+        #     labels = gcloud.get_image_labels(image_path, image.bottom, image.top, image.left, image.right)
+        #     images_with_labels.append([image, labels])
 
         req.__dict__['data']['lines'] = lines
         req.__dict__['data']['images'] = images

@@ -54,6 +54,13 @@ def PIL_to_gcloud_image(PILImage):
     return gcloudImage
 
 
+def read_image(image_file, bottom=0, top=0, left=0, right=0):
+    image = crop_image(image_file, bottom, top, left, right)
+    image = PIL_to_gcloud_image(image)
+
+    return image
+
+
 def feature_dict(text, bound, confidence=0):
     left = bound.vertices[0].x
     right = bound.vertices[1].x
@@ -90,13 +97,9 @@ class GCloudRepository:
 
         self.client = vision.ImageAnnotatorClient()
 
-    def process_document(self, image_file, feature, bottom=0, top=0, left=0, right=0):
+    def process_document(self, image_file, bottom=0, top=0, left=0, right=0):
         """Returns document bounds given an image."""
-
-        bounds = []
-
-        image = crop_image(image_file, bottom, top, left, right)
-        image = PIL_to_gcloud_image(image)
+        image = read_image(image_file, bottom, top, left, right)
 
         response = self.client.document_text_detection(image=image)
         document = response.full_text_annotation
@@ -106,7 +109,7 @@ class GCloudRepository:
         paragraphs = []
         lines = []
 
-        # Collect specified feature bounds & texts by enumerating all document features
+        # Collect feature bounds & texts by enumerating all document features
         for page in document.pages:
             for block in page.blocks:
                 for paragraph in block.paragraphs:
@@ -115,6 +118,8 @@ class GCloudRepository:
                     for word in paragraph.words:
                         for symbol in word.symbols:
                             line += symbol.text
+                            # TODO: Fix bounding box of lines. it should be max of its symbol's bounding box.
+
                             if symbol.property.detected_break.type == breaks.SPACE:
                                 line += ' '
                             if symbol.property.detected_break.type == breaks.EOL_SURE_SPACE:
@@ -127,86 +132,71 @@ class GCloudRepository:
                                 para += line
                                 line = ''
 
-                            if (feature == FeatureType.SYMBOL):
-                                bounds.append(symbol.bounding_box)
-
-                            # symbol.confidence
-
-                        if (feature == FeatureType.WORD):
-                            bounds.append(word.bounding_box)
-
                     paragraphs.append(feature_dict(para, paragraph.bounding_box, paragraph.confidence))
 
-                    if (feature == FeatureType.PARA):
-                        bounds.append(paragraph.bounding_box)
+        return paragraphs, lines
 
-                if (feature == FeatureType.BLOCK):
-                    bounds.append(block.bounding_box)
+    def get_image_labels(self, image_file, bottom=0, top=0, left=0, right=0):
+        # file_name = os.path.join(os.path.dirname(__file__), image_file)
+        #
+        # # Loads the image into memory
+        # with io.open(file_name, 'rb') as file:
+        #     content = file.read()
+        #
+        # image = types.Image(content=content)
 
-            if (feature == FeatureType.PAGE):
-                bounds.append(block.bounding_box)
-
-        return paragraphs, lines, bounds
-
-    def get_labels(self, filein, fileout):
-
-        file_name = os.path.join(os.path.dirname(__file__), filein)
-
-        # Loads the image into memory
-        with io.open(file_name, 'rb') as image_file:
-            content = image_file.read()
-
-        image = types.Image(content=content)
 
         # Performs label detection on the image file
+        image = read_image(image_file, bottom, top, left, right)
         response = self.client.label_detection(image=image)
         labels = response.label_annotations
 
-        # print('Labels:')
-        # for label in labels:
-        #     print(label.description)
+        label_dicts = []
+        for label in labels:
+            dictionary = {
+                "description": label.description,
+                "score": label.score
+            }
+            label_dicts.append(dictionary)
 
-        # print(labels)
+        return label_dicts
 
-        return labels
-
-
-def draw_boxes(image, bounds, color):
-    """Draw a border around the image using the hints in the vector list."""
-    draw = ImageDraw.Draw(image)
-
-    for bound in bounds:
-        draw.polygon([
-            bound.vertices[0].x, bound.vertices[0].y,
-            bound.vertices[1].x, bound.vertices[1].y,
-            bound.vertices[2].x, bound.vertices[2].y,
-            bound.vertices[3].x, bound.vertices[3].y], None, color)
-    return image
-
-
-def render_bounding_box_drawing(filein, fileout, bottom=0, top=0, left=0, right=0):
-    """Returns document bounds given an image via get_document_bounds."""
-    image = Image.open(filein)
-
-    # convert str args into int
-    bottom = int(bottom)
-    top = int(top)
-    left = int(left)
-    right = int(right)
-
-    gcloud = GCloudRepository()
-
-    p, l, bounds = gcloud.process_document(filein, FeatureType.PAGE, bottom, top, left, right)
-    draw_boxes(image, bounds, 'blue')
-    p, l, bounds = gcloud.process_document(filein, FeatureType.PARA, bottom, top, left, right)
-    draw_boxes(image, bounds, 'red')
-    p, l, bounds = gcloud.process_document(filein, FeatureType.WORD, bottom, top, left, right)
-    draw_boxes(image, bounds, 'yellow')
-
-    if fileout is not 0:
-        image.save(fileout)
-    else:
-        image.show()
+# def draw_boxes(image, bounds, color):
+#     """Draw a border around the image using the hints in the vector list."""
+#     draw = ImageDraw.Draw(image)
+#
+#     for bound in bounds:
+#         draw.polygon([
+#             bound.vertices[0].x, bound.vertices[0].y,
+#             bound.vertices[1].x, bound.vertices[1].y,
+#             bound.vertices[2].x, bound.vertices[2].y,
+#             bound.vertices[3].x, bound.vertices[3].y], None, color)
+#     return image
+#
+#
+# def render_bounding_box_drawing(filein, fileout, bottom=0, top=0, left=0, right=0):
+#     """Returns document bounds given an image via get_document_bounds."""
+#     image = Image.open(filein)
+#
+#     # convert str args into int
+#     bottom = int(bottom)
+#     top = int(top)
+#     left = int(left)
+#     right = int(right)
+#
+#     gcloud = GCloudRepository()
+#
+#     p, l, bounds = gcloud.process_document(filein, FeatureType.PAGE, bottom, top, left, right)
+#     draw_boxes(image, bounds, 'blue')
+#     p, l, bounds = gcloud.process_document(filein, FeatureType.PARA, bottom, top, left, right)
+#     draw_boxes(image, bounds, 'red')
+#     p, l, bounds = gcloud.process_document(filein, FeatureType.WORD, bottom, top, left, right)
+#     draw_boxes(image, bounds, 'yellow')
+#
+#     if fileout is not 0:
+#         image.save(fileout)
+#     else:
+#         image.show()args.bottom, args.top, args.left, args.right
 
 
 if __name__ == '__main__':
@@ -227,6 +217,8 @@ if __name__ == '__main__':
 
     gcloud = GCloudRepository()
 
-    paragraphs, lines, bounds = gcloud.process_document(args.input_file, args.bottom, args.top, args.left, args.right)
+    # paragraphs, lines, bounds = gcloud.process_document(args.input_file, args.bottom, args.top, args.left, args.right)
+    # print(paragraphs)
 
-    print(paragraphs)
+    labels = gcloud.get_image_labels(args.input_file, args.bottom, args.top, args.left, args.right)
+    print(labels)
