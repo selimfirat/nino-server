@@ -137,14 +137,14 @@ class GCloudRepository:
                             line_left = min(symbol.bounding_box.vertices[0].x, line_left)
                             line_right = max(symbol.bounding_box.vertices[1].x, line_right)
                             line_top = min(symbol.bounding_box.vertices[0].y, line_top)
-                            line_bottom = max(symbol.bounding_boxvertices[2].y, line_bottom)
+                            line_bottom = max(symbol.bounding_box.vertices[2].y, line_bottom)
 
                             if symbol.property.detected_break.type == breaks.SPACE:
                                 line += ' '
 
                             if symbol.property.detected_break.type == breaks.EOL_SURE_SPACE:
                                 line += ' '
-                                lines.append(line(line, line_bottom, line_top, line_left, line_right))
+                                lines.append(line_dict(line, line_bottom, line_top, line_left, line_right))
                                 para += line
                                 line, line_bottom, line_top, line_left, line_right = reset()
 
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     # example call : python3 gcloud.py deneme2.png -output_file output_word.png -top 00 -left 00 -bottom 800 -right 800
 
     # enviroment var GOOGLE_APPLICATION_CREDENTIALS is visible in this process & it's children
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.dirname(os.path.abspath(__file__))+"/apikey.json"
+    # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.dirname(os.path.abspath(__file__))+"/apikey.json"
 
     # extract text & equations
     parser = argparse.ArgumentParser()
