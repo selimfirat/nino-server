@@ -18,20 +18,9 @@ class TimestampedModel(models.Model):
 
 class Note(TimestampedModel):
 
-    owner = models.ForeignKey('auth.User', related_name='notes', on_delete=models.CASCADE)
-    category = models.ForeignKey('api.Category', related_name='notes', on_delete=models.CASCADE, null=True, blank=True)
-
     name = models.CharField(max_length=200)
     image = models.ImageField(upload_to="notes/original_images/", null=True, blank=True)
     
     
     def __str__(self):
         return "{}".format(self.name)
-
-
-class Category(TimestampedModel):
-    
-    owner = models.ForeignKey('auth.User', related_name="categories", on_delete=models.CASCADE)
-    
-    name = models.CharField(max_length=200)
-    

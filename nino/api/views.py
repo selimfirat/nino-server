@@ -3,7 +3,6 @@ from rest_framework import mixins, generics
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from .models import Note
 from .serializers import NoteSerializer
-from django.contrib.auth.models import User
 from rest_framework import permissions
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
@@ -42,16 +41,16 @@ class NoteList(mixins.ListModelMixin,
     """
      List all notes, or create a note
     """
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = ()
     parser_classes = (JSONParser, MultiPartParser, FormParser,)
 
     serializer_class = NoteSerializer
 
     def get_queryset(self, *args, **kwargs):
-        return Note.objects.all().filter(owner=self.request.user)
+        return Note.objects.all()
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        serializer.save()
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -71,9 +70,9 @@ class NoteList(mixins.ListModelMixin,
         request_dict = dict(request.data)
         print(req.__dict__['data']['id'])
         initial_image_str = request_dict['image'][0]._get_name()
-        username = req.__dict__['data']['owner'] #str(request.user)
+        # username = req.__dict__['data']['owner'] #str(request.user)
         request_id = str(req.__dict__['data']['id'])
-        print('Running request for user ' + username + " with request id #" + request_id)
+        # print('Running request for user ' + username + " with request id #" + request_id)
         dir_notes = "notes/"
 
         image_path = dir_notes + 'original_images/' + initial_image_str.replace(" ", "_")
@@ -125,12 +124,12 @@ class NoteDetail(mixins.RetrieveModelMixin,
     """
     Retrieve, update or delete a note instance.
     """
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = ()
     serializer_class = NoteSerializer
 
     def get_object(self, pk):
         try:
-            return Note.objects.filter(owner=self.request.user).get(pk=pk)
+            return Note.objects.get(pk=pk)
         except Note.DoesNotExist:
             raise
 
