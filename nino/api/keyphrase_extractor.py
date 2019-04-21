@@ -32,7 +32,7 @@ class KeyPhraseExtractor:
         #    redundant keyphrases are removed from the output using levenshtein
         #    distance and a threshold.
         threshold = 0.8
-        keyphrases_res = extractor.get_n_best(n=10, threshold=threshold)
+        keyphrases_res = extractor.get_n_best(n=5, threshold=threshold)
 
         keyphrases = []
         for kp, score in keyphrases_res:
