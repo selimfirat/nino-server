@@ -45,15 +45,25 @@ class MathpixRepository:
         
         reg = re.compile(r'\\\((.*?)\\\)')
         
+        imgbin = open(img_path, "rb").read()
+        
         # check lines
         textlines = [] # list of lines comprised only of text
-        for line in lines:
+        for i, line in enumerate(lines):
+            if not (i+1) % (len(lines)/10):
+                print('Processed %d out of %d (%d%%)...' % (i, len(lines), 100*i/len(lines)))
+            
+            # skip text unlikely to contain equations (may later use an hmm etc.)
+            if re.match(r'^[a-zA-Z0-9,. ]*$', line['text']) is not  None:
+                textlines.append(line)
+                continue
+            
             # crop image
-            x0, y0, x1, y1 = line['left'], line['bottom'], line['right'], line['top']
+            x0, y0, x1, y1 = line['left'], line['bottom'], line['right'], line['top'] # possibly pad
             # cropped = img[y0:y1, x0:x1]
 
             # send request (may later do these in batch)
-            r = self.query(img_path, False, region=(x0,y0,x1,y1))
+            r = self.query(img_path, False, imgbin=imgbin, region=(x0,y0,x1,y1))
             
             # detect if equation in line, whether from confidence value or analyzing latex output
             
@@ -82,7 +92,7 @@ class MathpixRepository:
             # cropped = img[y0:y1, x0:x1]
 
             # send request (may later do these in batch)
-            r = self.query(img_path, False, region=(x0,y0,x1,y1))
+            r = self.query(img_path, False, imgbin=imgbin, region=(x0,y0,x1,y1))
 
             # identify type
             if 'contains_graph' in r['detection_list']:
@@ -92,23 +102,25 @@ class MathpixRepository:
             elif 'contains_diagram' in r['detection_list']:
                 typ = 'diagram'
             elif 'contains_table' in r['detection_list'] and not r['error']:
-                text = r['latex_styled'] if 'latex_styled' in r else r['latex_normal']
+                latex = r['latex_styled'] if 'latex_styled' in r else r['latex_normal']
+                text = r['text']
                 conf = r['latex_confidence_rate']
                 
                 # may use bounding box returned in r['position'] to fine tune coordinates
-                tables.append({'latex':text, 'conf':conf, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
+                tables.append({'latex':latex, 'text':text, 'conf':conf, 'left':x0, 'top':y1, 'right':x1, 'bottom':y0})
                 continue
             elif 'is_not_math' not in r['detection_list'] and not r['error']: # equation in standalone figure
-                text = r['latex_styled'] if 'latex_styled' in r else r['latex_normal'] # possibly analyze for text vs. eqn
+                latex = r['latex_styled'] if 'latex_styled' in r else r['latex_normal'] # possibly analyze for text vs. eqn
+                text = r['text']
                 conf = r['latex_confidence_rate']
                 
                 # may use bounding box returned in r['position'] to fine tune coordinates
-                equations.append({'latex':text, 'conf':conf, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
+                equations.append({'latex':latex, 'text':text, 'conf':conf, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
                 continue
             else: # may also check is_blank etc.
                 continue
 
-            figures.append({'type':typ, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
+            figures.append({'type':typ, 'left':x0, 'top':y0, 'right':x1, 'bottom':y1})
             
             
         # return lines, images, paragraphs, equations, tables, figures
@@ -125,12 +137,12 @@ class MathpixRepository:
         except:
             return None
         
-    def query(self, file_path, output=True, img=None, region=None):
+    def query(self, file_path, output=True, img=None, imgbin=None, region=None):
         'Query server for single image'
         
         if img is not None:
             imgbin = cv2.imencode('.jpg', img)[1]
-        else:
+        elif imgbin is None:
             imgbin = open(file_path, "rb").read()
         image_uri = "data:image/jpg;base64," + base64.b64encode(imgbin).decode()
         data = {'src': image_uri, 'formats': ['latex_normal', 'latex_styled', 'text']}
