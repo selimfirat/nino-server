@@ -48,9 +48,10 @@ class MathpixRepository:
         imgbin = open(img_path, "rb").read()
         
         # check lines
+        print('Processing lines...')
         textlines = [] # list of lines comprised only of text
         for i, line in enumerate(lines):
-            if not (i+1) % (len(lines)/10):
+            if not (i+1) % (len(lines)//5+1):
                 print('Processed %d out of %d (%d%%)...' % (i, len(lines), 100*i/len(lines)))
             
             # skip text unlikely to contain equations (may later use an hmm etc.)
@@ -84,9 +85,14 @@ class MathpixRepository:
                 equations.append({'text':text, 'latex':latex, 'conf':conf, 'left':x0, 'bottom':y0, 'right':x1, 'top':y1})
             else:
                 textlines.append(line)
+        print('Lines processed')
         
         # check images
-        for rect in images:
+        print('Processing figures...')
+        for i, rect in enumerate(images):
+            if not (i+1) % (len(lines)//5+1):
+                print('Processed %d out of %d (%d%%)...' % (i, len(lines), 100*i/len(lines)))
+                
             # crop image
             x0, y0, x1, y1 = rect['left'], rect['bottom'], rect['right'], rect['top']
             # cropped = img[y0:y1, x0:x1]
@@ -121,7 +127,7 @@ class MathpixRepository:
                 continue
 
             figures.append({'type':typ, 'left':x0, 'top':y0, 'right':x1, 'bottom':y1})
-            
+        print('Figures processed')
             
         # return lines, images, paragraphs, equations, tables, figures
         return textlines, images, paragraphs, equations, tables, figures
