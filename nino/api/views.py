@@ -27,12 +27,9 @@ import pathlib
 
 
 from .abbyy_repository import AbbyyRepository
-# Temporarily disabled due to dependencies
-# from .mathpix import MathpixRepository
-# mpix = MathpixRepository()
-
-# GCloud: Disabled due to dependencies
-# from .gcloud import GCloudRepository
+from .gcloud import GCloudRepository
+from .mathpix import MathpixRepository
+mpix = MathpixRepository()
 
 
 class NoteList(mixins.ListModelMixin,
@@ -53,7 +50,6 @@ class NoteList(mixins.ListModelMixin,
 
         self.abbyy = AbbyyRepository("nino_batu", "nRYRO0U1yeElxbzvSxHNKYW4")
         self.wikifier = Wikifier()
-
 
     def get_queryset(self, *args, **kwargs):
         return Note.objects.all()
@@ -81,18 +77,12 @@ class NoteList(mixins.ListModelMixin,
         lines, images, paragraphs = self.abbyy.process_image(source_image_path=image_path)
         
         # Temporarily disabled due to dependencies
-        # lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
+        lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
 
         # GCloud: Disabled due to dependencies
-        # gcloud = GCloudRepository()
-        # lines, paragraphs, bounds = gcloud.process_document(image_path) # Can process a crop of the image if given bottom,top, left, right vertices
-        #
-        # TODO: Should choose between GCloud or Abbyy according to confidence
-        #
-        # images_with_labels = []
-        # for image in images:
-        #     labels = gcloud.get_image_labels(image_path, image.bottom, image.top, image.left, image.right)
-        #     images_with_labels.append([image, labels])
+        gcloud = GCloudRepository()
+        images = gcloud.append_image_labels(image_path, images)
+
 
         req.__dict__['data']['lines'] = lines
         req.__dict__['data']['images'] = images

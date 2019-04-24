@@ -157,7 +157,7 @@ class GCloudRepository:
 
         return paragraphs, lines
 
-    def get_image_labels(self, image_file, bottom=0, top=0, left=0, right=0):
+    def get_image_labels(self, image_file, bottom=0, top=0, left=0, right=0, max_labels=0):
         # file_name = os.path.join(os.path.dirname(__file__), image_file)
         #
         # # Loads the image into memory
@@ -173,14 +173,41 @@ class GCloudRepository:
         labels = response.label_annotations
 
         label_dicts = []
-        for label in labels:
-            dictionary = {
-                "description": label.description,
-                "score": label.score
-            }
-            label_dicts.append(dictionary)
+        if max_labels is 0:
+            for label in labels:
+                dictionary = {
+                    "description": label.description,
+                    "score": label.score
+                }
+                label_dicts.append(dictionary)
+        else:
+            for label in labels:
+                dictionary = {
+                    "description": label.description,
+                    "score": label.score
+                }
+                label_dicts.append(dictionary)
+                max_labels= max_labels-1
+                if max_labels is 0:
+                    break
 
         return label_dicts
+
+    def append_image_labels(self, image_path, images, max_labels=0):
+        images_with_labels = []
+        for image in images:
+            img_labels = self.get_image_labels(image_path, image.bottom, image.top, image.left, image.right, max_labels)
+            image_dict = {
+                            "left": image.left,
+                            "top": image.top,
+                            "right": image.right,
+                            "bottom": image.bottom,
+                            "labels": img_labels
+            }
+
+            images_with_labels.append(image_dict)
+
+        return images_with_labels
 
 # def draw_boxes(image, bounds, color):
 #     """Draw a border around the image using the hints in the vector list."""
@@ -238,8 +265,8 @@ if __name__ == '__main__':
 
     gcloud = GCloudRepository()
 
-    paragraphs, lines = gcloud.process_document(args.input_file, args.bottom, args.top, args.left, args.right)
-    print(lines)
+    # paragraphs, lines = gcloud.process_document(args.input_file, args.bottom, args.top, args.left, args.right)
+    # print(lines)
 
-    # labels = gcloud.get_image_labels(args.input_file, args.bottom, args.top, args.left, args.right)
-    # print(labels)
+    labels = gcloud.get_image_labels(args.input_file, args.bottom, args.top, args.left, args.right)
+    print(labels)
