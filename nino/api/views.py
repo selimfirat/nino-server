@@ -76,10 +76,8 @@ class NoteList(mixins.ListModelMixin,
         image_path = dir_notes + 'original_images/' + initial_image_str.replace(" ", "_")
         lines, images, paragraphs = self.abbyy.process_image(source_image_path=image_path)
         
-        # Temporarily disabled due to dependencies
         lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
 
-        # GCloud: Disabled due to dependencies
         gcloud = GCloudRepository()
         images = gcloud.append_image_labels(image_path, images)
 
@@ -87,13 +85,10 @@ class NoteList(mixins.ListModelMixin,
         req.__dict__['data']['lines'] = lines
         req.__dict__['data']['images'] = images
         req.__dict__['data']['paragraphs'] = paragraphs
-        
-        # Temporarily disabled due to dependencies
-        """
+
         req.__dict__['data']['equations'] = equations
         req.__dict__['data']['tables'] = tables
         req.__dict__['data']['figures'] = figures
-        """
         
         all_text = "\n".join([par["text"] for par in paragraphs])
         
