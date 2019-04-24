@@ -196,12 +196,12 @@ class GCloudRepository:
     def append_image_labels(self, image_path, images, max_labels=0):
         images_with_labels = []
         for image in images:
-            img_labels = self.get_image_labels(image_path, image.bottom, image.top, image.left, image.right, max_labels)
+            img_labels = self.get_image_labels(image_path, image.get("bottom"), image.get("top"), image.get("left"), image.get("right"), max_labels)
             image_dict = {
-                            "left": image.left,
-                            "top": image.top,
-                            "right": image.right,
-                            "bottom": image.bottom,
+                            "left": image.get("left"),
+                            "top": image.get("top"),
+                            "right": image.get("right"),
+                            "bottom": image.get("bottom"),
                             "labels": img_labels
             }
 
