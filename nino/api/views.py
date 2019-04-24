@@ -45,6 +45,15 @@ class NoteList(mixins.ListModelMixin,
     parser_classes = (JSONParser, MultiPartParser, FormParser,)
 
     serializer_class = NoteSerializer
+    
+    def __init__(self):
+        self.ner = NERRecognizer()
+
+        self.keyphrase_extractor = KeyPhraseExtractor()
+
+        self.abbyy = AbbyyRepository("nino_batu", "nRYRO0U1yeElxbzvSxHNKYW4")
+        self.wikifier = Wikifier()
+
 
     def get_queryset(self, *args, **kwargs):
         return Note.objects.all()
@@ -57,18 +66,11 @@ class NoteList(mixins.ListModelMixin,
 
     def post(self, request, *args, **kwargs):
         req = self.create(request, *args, **kwargs)
-        ner = NERRecognizer()
-
-        keyphrase_extractor = KeyPhraseExtractor()
-
-        abby = AbbyyRepository("testsdaads", "13JgRczOS+nmjkn80ewUwXxl")
-        wikifier = Wikifier()
-
         
         print(req.__dict__)
         
         request_dict = dict(request.data)
-        print(req.__dict__['data']['id'])
+
         initial_image_str = request_dict['image'][0]._get_name()
         # username = req.__dict__['data']['owner'] #str(request.user)
         request_id = str(req.__dict__['data']['id'])
@@ -76,7 +78,7 @@ class NoteList(mixins.ListModelMixin,
         dir_notes = "notes/"
 
         image_path = dir_notes + 'original_images/' + initial_image_str.replace(" ", "_")
-        lines, images, paragraphs = abby.process_image(source_image_path=image_path)
+        lines, images, paragraphs = self.abbyy.process_image(source_image_path=image_path)
         
         # Temporarily disabled due to dependencies
         # lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
@@ -106,14 +108,14 @@ class NoteList(mixins.ListModelMixin,
         all_text = "\n".join([par["text"] for par in paragraphs])
         
 
-        keyphrases = keyphrase_extractor.get_keyphrases(all_text)
+        keyphrases = self.keyphrase_extractor.get_keyphrases(all_text)
         
         for kp in keyphrases:
-            kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
+            kp["info"] = self.wikifier.get_entity_info(kp["keyphrase"])
         
         req.__dict__["data"]["keyphrases"] = keyphrases
         
-        req.__dict__["data"]["entities"] = ner.get_ner_entities(all_text)
+        req.__dict__["data"]["entities"] = self.ner.get_ner_entities(all_text)
         
         return req
 
