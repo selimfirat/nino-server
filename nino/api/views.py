@@ -29,7 +29,47 @@ import pathlib
 from .abbyy_repository import AbbyyRepository
 from .gcloud import GCloudRepository
 from .mathpix import MathpixRepository
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+ner = NERRecognizer()
+keyphrase_extractor = KeyPhraseExtractor()
+abbyy = AbbyyRepository("nino_batu", "nRYRO0U1yeElxbzvSxHNKYW4")
+wikifier = Wikifier()
 mpix = MathpixRepository()
+gcloud = GCloudRepository()
+
+
+
+
+@api_view(['POST'])
+def text_analysis(request):
+    request_dict = dict(request.data)
+    
+    text = request_dict["text"]
+    
+    keyphrases = keyphrase_extractor.get_keyphrases(text)
+
+    for kp in keyphrases:
+        kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
+
+    res = {}
+    res["keyphrases"] = keyphrases
+
+    res["entities"] = ner.get_ner_entities(text)
+
+    res["entitylist"] = []
+    
+    for kp in res["keyphrases"]:
+        res["entitylist"].append(kp["keyphrase"].title())
+    
+    for e in res["entities"]:
+        res["entitylist"].append(e["text"].title())
+    
+    res["entitylist"] = list(set(res["entitylist"]))
+    
+    return Response(res)
 
 
 class NoteList(mixins.ListModelMixin,
@@ -43,14 +83,6 @@ class NoteList(mixins.ListModelMixin,
 
     serializer_class = NoteSerializer
     
-    def __init__(self):
-        self.ner = NERRecognizer()
-
-        self.keyphrase_extractor = KeyPhraseExtractor()
-
-        self.abbyy = AbbyyRepository("nino_batu", "nRYRO0U1yeElxbzvSxHNKYW4")
-        self.wikifier = Wikifier()
-
     def get_queryset(self, *args, **kwargs):
         return Note.objects.all()
 
@@ -74,13 +106,10 @@ class NoteList(mixins.ListModelMixin,
         dir_notes = "notes/"
 
         image_path = dir_notes + 'original_images/' + initial_image_str.replace(" ", "_")
-        lines, images, paragraphs = self.abbyy.process_image(source_image_path=image_path)
+        lines, images, paragraphs = abbyy.process_image(source_image_path=image_path)
         
-        # Temporarily disabled due to dependencies
         lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
 
-        # GCloud: Disabled due to dependencies
-        gcloud = GCloudRepository()
         images = gcloud.append_image_labels(image_path, images)
 
 
@@ -98,47 +127,13 @@ class NoteList(mixins.ListModelMixin,
         all_text = "\n".join([par["text"] for par in paragraphs])
         
 
-        keyphrases = self.keyphrase_extractor.get_keyphrases(all_text)
+        keyphrases = keyphrase_extractor.get_keyphrases(all_text)
         
         for kp in keyphrases:
-            kp["info"] = self.wikifier.get_entity_info(kp["keyphrase"])
+            kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
         
         req.__dict__["data"]["keyphrases"] = keyphrases
         
-        req.__dict__["data"]["entities"] = self.ner.get_ner_entities(all_text)
+        req.__dict__["data"]["entities"] = ner.get_ner_entities(all_text)
         
         return req
-
-class NoteDetail(mixins.RetrieveModelMixin,
-                    mixins.UpdateModelMixin,
-                    mixins.DestroyModelMixin,
-                    generics.GenericAPIView):
-    """
-    Retrieve, update or delete a note instance.
-    """
-    permission_classes = ()
-    serializer_class = NoteSerializer
-
-    def get_object(self, pk):
-        try:
-            return Note.objects.get(pk=pk)
-        except Note.DoesNotExist:
-            raise
-
-    def get(self, request, pk, format=None):
-        snippet = self.get_object(pk)
-        serializer = NoteSerializer(snippet)
-        return Response(serializer.data)
-
-    def put(self, request, pk, format=None):
-        note = self.get_object(pk)
-        serializer = NoteSerializer(note, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk, format=None):
-        note = self.get_object(pk)
-        note.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
