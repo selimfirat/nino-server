@@ -59,15 +59,21 @@ def text_analysis(request):
 
     res["entities"] = ner.get_ner_entities(text)
 
-    res["entitylist"] = []
+    entitylist = []
     
     for kp in res["keyphrases"]:
-        res["entitylist"].append(kp["keyphrase"].title())
+        entitylist.append(kp["keyphrase"].title())
     
     for e in res["entities"]:
-        res["entitylist"].append(e["text"].title())
+        entitylist.append(e["text"].title())
     
-    res["entitylist"] = list(set(res["entitylist"]))
+    entitylist.sort(key=lambda x: -len(x))
+    
+    res["entitylist"] = []
+    for e in entitylist:
+        if not any(e in ex for ex in res["entitylist"]):
+            res["entitylist"].append(e)
+    
     
     return Response(res)
 
