@@ -116,13 +116,10 @@ class NoteList(mixins.ListModelMixin,
         req.__dict__['data']['lines'] = lines
         req.__dict__['data']['images'] = images
         req.__dict__['data']['paragraphs'] = paragraphs
-        
-        # Temporarily disabled due to dependencies
-        """
+
         req.__dict__['data']['equations'] = equations
         req.__dict__['data']['tables'] = tables
         req.__dict__['data']['figures'] = figures
-        """
         
         all_text = "\n".join([par["text"] for par in paragraphs])
         
