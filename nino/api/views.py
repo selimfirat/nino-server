@@ -64,9 +64,6 @@ def text_analysis(request):
     for kp in res["keyphrases"]:
         entitylist.append(kp["keyphrase"].title())
     
-    for e in res["entities"]:
-        entitylist.append(e["text"].title())
-    
     entitylist.sort(key=lambda x: -len(x))
     
     res["entitylist"] = []
@@ -74,6 +71,10 @@ def text_analysis(request):
         if not any(e in ex for ex in res["entitylist"]):
             res["entitylist"].append(e)
     
+    for e in res["entities"]:
+        res["entitylist"].append(e["text"].title())
+    
+    res["entitylist"] = list(set(res["entitylist"]))
     
     return Response(res)
 
