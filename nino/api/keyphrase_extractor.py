@@ -4,6 +4,12 @@ from nltk.corpus import stopwords
 class KeyPhraseExtractor:
     
     def get_keyphrases(self, text):
+        try:
+            return _get_keyphrases(text)
+        except:
+            return []
+
+    def _get_keyphrases(self, text):
         if len(text.replace("\s", "")) == 0:
             return []
         # 1. create a YAKE extractor.
