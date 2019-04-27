@@ -15,10 +15,11 @@ from rest_framework.status import (
     HTTP_404_NOT_FOUND,
     HTTP_200_OK
 )
-
+import subprocess
 import base64
 
 from .wikifier import Wikifier
+from .question_generator import QuestionGenerator
 
 from .keyphrase_extractor import KeyPhraseExtractor
 from .ner_recognizer import NERRecognizer
@@ -39,15 +40,14 @@ abbyy = AbbyyRepository("nino_batu", "nRYRO0U1yeElxbzvSxHNKYW4")
 wikifier = Wikifier()
 mpix = MathpixRepository()
 gcloud = GCloudRepository()
-
-
+question_generator = QuestionGenerator()
 
 
 @api_view(['POST'])
-def text_analysis(request):
+def analyze_text(request):
     request_dict = dict(request.data)
-    
     text = request_dict["text"]
+    
     
     keyphrases = keyphrase_extractor.get_keyphrases(text)
 
@@ -75,6 +75,15 @@ def text_analysis(request):
         res["entitylist"].append(e["text"].title())
     
     res["entitylist"] = list(set(res["entitylist"]))
+    
+    return Response(res)
+
+@api_view(["POST"])
+def generate_questions(request):
+    request_dict = dict(request.data)
+    text = request_dict["text"]
+    
+    res = question_generator.generate_questions(text)
     
     return Response(res)
 

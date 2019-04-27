@@ -33,7 +33,8 @@ urlpatterns = [
     url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls')),
     path('api/notes/', views.NoteList.as_view()),
-    path('api/analyze_text/', views.text_analysis),
+    path('api/analyze_text/', views.analyze_text),
+    path('api/generate_questions/', views.generate_questions),
     url(r'^api/docs/', include_docs_urls(title='Nino API Documentation')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

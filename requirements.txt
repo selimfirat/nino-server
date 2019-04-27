@@ -13,3 +13,5 @@ git+https://github.com/boudinfl/pke.git
 flair
 google_compute_engine
 nltk
+pycorenlp==0.3.0
+pyzmq==16.0.2
