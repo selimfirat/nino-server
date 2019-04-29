@@ -16,7 +16,7 @@ except ImportError:
 
 class ProcessingSettings:
 	Language = "English"
-	OutputFormat = "docx"
+	OutputFormat = "rtf"
 
 
 class Task:
@@ -47,7 +47,8 @@ class AbbyyOnlineSdk:
 		url_params = {
 			"language": settings.Language,
 			"exportFormat": settings.OutputFormat,
-            "correctSkew": False
+            "correctSkew": False,
+            "correctOrientation": False
 		}
 		request_url = self.get_request_url("processImage")
 

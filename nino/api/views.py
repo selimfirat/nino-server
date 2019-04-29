@@ -17,7 +17,7 @@ from rest_framework.status import (
 )
 import subprocess
 import base64
-
+import re
 from .wikifier import Wikifier
 from .question_generator import QuestionGenerator
 
@@ -26,7 +26,7 @@ from .ner_recognizer import NERRecognizer
 from PIL import Image
 import pathlib
 
-
+import re
 from .abbyy_repository import AbbyyRepository
 from .gcloud import GCloudRepository
 from .mathpix import MathpixRepository
@@ -38,45 +38,44 @@ ner = NERRecognizer()
 keyphrase_extractor = KeyPhraseExtractor()
 abbyy = AbbyyRepository("best_app_joni", "n/8X7Y0xPR8g1GwhUOfqiRIM")
 wikifier = Wikifier()
-mpix = MathpixRepository()
-gcloud = GCloudRepository()
+# mpix = MathpixRepository()
+# gcloud = GCloudRepository()
 question_generator = QuestionGenerator()
 
 
 @api_view(['POST'])
 def analyze_text(request):
     request_dict = dict(request.data)
-    text = request_dict["text"]
+    text = "".join(request_dict["text"])
+    print("printing text:", text)
+    # text = text.replace("\n", " ")
+    # text = re.sub("[^a-zA-Z0-9_\s]", "", text)
     
     
     keyphrases = keyphrase_extractor.get_keyphrases(text)
-
-    for kp in keyphrases:
-        kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
-
-    res = {}
-    res["keyphrases"] = keyphrases
-
-    res["entities"] = ner.get_ner_entities(text)
-
+    ner_entities = ner.get_ner_entities(text)
+    
+    entities = ner_entities + keyphrases
+    
+    entities.sort(key=lambda x: -len(x))
+    
     entitylist = []
     
-    for kp in res["keyphrases"]:
-        entitylist.append(kp["keyphrase"].title())
+    for entity in entities:
+        e = entity["text"]
+        if not any(e in ex for ex in entitylist):
+            entitylist.append(e)
+
     
-    entitylist.sort(key=lambda x: -len(x))
+    questions = question_generator.generate_questions(text, entitylist)
     
-    res["entitylist"] = []
-    for e in entitylist:
-        if not any(e in ex for ex in res["entitylist"]):
-            res["entitylist"].append(e)
-    
-    for e in res["entities"]:
-        res["entitylist"].append(e["text"].title())
-    
-    res["entitylist"] = list(set(res["entitylist"]))
+    res = {
+        "entitylist": entitylist,
+        "questions": questions
+    }
     
     return Response(res)
+
 
 @api_view(["POST"])
 def generate_questions(request):
@@ -122,14 +121,15 @@ class NoteList(mixins.ListModelMixin,
         dir_notes = "notes/"
 
         image_path = dir_notes + 'original_images/' + initial_image_str.replace(" ", "_")
-        lines, images, paragraphs = abbyy.process_image(source_image_path=image_path)
+        page, lines, images, paragraphs = abbyy.process_image(source_image_path=image_path)
         
         # lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
 
         # images = gcloud.append_image_labels(image_path, images)
 
 
-        req.__dict__['data']['lines'] = lines
+        # req.__dict__['data']['lines'] = lines
+        req.__dict__["data"]["page"] = page
         req.__dict__['data']['images'] = images
         req.__dict__['data']['paragraphs'] = paragraphs
 

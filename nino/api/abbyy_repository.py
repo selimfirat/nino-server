@@ -65,13 +65,19 @@ class AbbyyRepository:
         
         jres = self.xml_to_json(target_file_path)
 
-        os.remove(target_file_path)
+        # os.remove(target_file_path)
         
         return jres
 
     def xml_to_json(self, f_xml):
         xmldoc = minidom.parse(f_xml)
-        blocksxml = xmldoc.getElementsByTagName("page")[0].getElementsByTagName('block')
+        print(xmldoc)
+        pagexml = xmldoc.getElementsByTagName("page")[0]
+        page = {
+            "width": pagexml.getAttribute("width"),
+            "height": pagexml.getAttribute("height")
+        }
+        blocksxml = pagexml.getElementsByTagName('block')
 
         lines = []
         images = []
@@ -91,7 +97,7 @@ class AbbyyRepository:
                     linesObj = par.getElementsByTagName("line")
                     par_lines = []
                     for lineObj in linesObj:
-                        l, b, r, t = int(lineObj.getAttribute("l")), int(lineObj.getAttribute("t")), int(lineObj.getAttribute("r")), int(lineObj.getAttribute("b"))
+                        l, b, r, t = int(lineObj.getAttribute("l")), int(lineObj.getAttribute("b")), int(lineObj.getAttribute("r")), int(lineObj.getAttribute("t"))
                         charsObj = lineObj.getElementsByTagName("formatting")[0].getElementsByTagName("charParams")
                         lineText = ""
                         for charObj in charsObj:
@@ -133,7 +139,7 @@ class AbbyyRepository:
                         paragraphs.append(paragraph_dict)
                     
             elif block_type == "Picture":
-                l, b, r, t = int(block.getAttribute("l")), int(block.getAttribute("t")), int(block.getAttribute("r")), int(block.getAttribute("b"))
+                l, b, r, t = int(block.getAttribute("l")), int(block.getAttribute("b")), int(block.getAttribute("r")), int(block.getAttribute("t"))
                 
                 image_dict = {
                             "left": l,
@@ -146,7 +152,7 @@ class AbbyyRepository:
 
 
         
-        return lines, images, paragraphs
+        return page, lines, images, paragraphs
         
 if __name__ == "__main__":
 
