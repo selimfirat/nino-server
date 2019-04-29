@@ -16,8 +16,10 @@ class NERRecognizer:
         try:
             sentences = nltk.sent_tokenize(text)
         except:
-            sentences = text
+            sentences = [text]
+        
         print(sentences)
+        
         for sent in sentences:
             sentence = Sentence(sent)
             self.ontoner_tagger.predict(sentence)

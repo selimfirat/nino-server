@@ -36,7 +36,7 @@ from rest_framework.response import Response
 
 ner = NERRecognizer()
 keyphrase_extractor = KeyPhraseExtractor()
-abbyy = AbbyyRepository("besti_app", "gfx+sn7HLv4+DrA7O3upeqry")
+abbyy = AbbyyRepository("best_app_joni", "n/8X7Y0xPR8g1GwhUOfqiRIM")
 wikifier = Wikifier()
 mpix = MathpixRepository()
 gcloud = GCloudRepository()
@@ -50,26 +50,31 @@ def analyze_text(request):
     
     
     keyphrases = keyphrase_extractor.get_keyphrases(text)
-    ner_entities = ner.get_ner_entities(text)
-    
-    entities = ner_entities + keyphrases
-    
-    entities.sort(key=lambda x: -len(x))
-    
+
+    for kp in keyphrases:
+        kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
+
+    res = {}
+    res["keyphrases"] = keyphrases
+
+    res["entities"] = ner.get_ner_entities(text)
+
     entitylist = []
     
-    for entity in entities:
-        e = entity["text"]
-        if not any(e in ex for ex in entitylist):
-            entitylist.append(e)
-
+    for kp in res["keyphrases"]:
+        entitylist.append(kp["keyphrase"].title())
     
-    questions = question_generator.generate_questions(text, entitylist)
+    entitylist.sort(key=lambda x: -len(x))
     
-    res = {
-        "entitylist": entitylist,
-        "questions": questions
-    }
+    res["entitylist"] = []
+    for e in entitylist:
+        if not any(e in ex for ex in res["entitylist"]):
+            res["entitylist"].append(e)
+    
+    for e in res["entities"]:
+        res["entitylist"].append(e["text"].title())
+    
+    res["entitylist"] = list(set(res["entitylist"]))
     
     return Response(res)
 
@@ -77,9 +82,8 @@ def analyze_text(request):
 def generate_questions(request):
     request_dict = dict(request.data)
     text = request_dict["text"]
-    entities = request_dict["entities"]
     
-    res = question_generator.generate_questions(text, entities)
+    res = question_generator.generate_questions(text)
     
     return Response(res)
 
@@ -130,19 +134,9 @@ class NoteList(mixins.ListModelMixin,
         req.__dict__['data']['paragraphs'] = paragraphs
 
         # req.__dict__['data']['equations'] = equations
-        # req.__dict__['data']['tables'] = tables
+        # req.__dict__['data']['tables'] = tables
         # req.__dict__['data']['figures'] = figures
         
         # all_text = "\n".join([par["text"] for par in paragraphs])
-        
-
-        # keyphrases = keyphrase_extractor.get_keyphrases(all_text)
-        
-        # for kp in keyphrases:
-        #    kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
-        
-        # req.__dict__["data"]["keyphrases"] = keyphrases
-        
-        # req.__dict__["data"]["entities"] = ner.get_ner_entities(all_text)
         
         return req
