@@ -25,6 +25,7 @@ class MathpixRepository:
             raise
         
         self.headers = headers
+        self.d = 5
         
     def process_image(self, img_path, jres):
         '''

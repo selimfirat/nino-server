@@ -1,22 +1,22 @@
-import subprocess
+import requests
 
 class QuestionGenerator:
 
-    def generate_questions(self, text):
-        out = subprocess.Popen(['./nino/question_generation/get_qnas', text.encode('utf-8')], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout,stderr = out.communicate()
+    def generate_questions(self, text, entities):
+        
+        questions = []
+        
+        if len(text.split(" ")) > 3:
+            for answer in entities:
+                payload = (
+                    ("context", text),
+                    ("answer", answer)
+                )
+                question = requests.get("http://localhost:5004/api/generate", params=payload).text.replace(" <\Sent>", "").replace(" &lt;/Sent&gt;", "")
 
-        res_lines = stdout.decode("utf-8").strip("\n").split("\n")
-        res = []
-        
-        if not res_lines[0]:
-            return res
-        
-        for line in res_lines:
-            question, answer, score = line.split("\t")
-            res.append({
-                "question": question,
-                "answer": answer,
-                "score": score
-            })
-        return res
+                questions.append({
+                    "question": question,
+                    "answer": answer
+                })
+
+        return questions

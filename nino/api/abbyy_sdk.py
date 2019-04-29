@@ -46,7 +46,8 @@ class AbbyyOnlineSdk:
 	def process_image(self, file_path, settings):
 		url_params = {
 			"language": settings.Language,
-			"exportFormat": settings.OutputFormat
+			"exportFormat": settings.OutputFormat,
+            "correctSkew": False
 		}
 		request_url = self.get_request_url("processImage")
 

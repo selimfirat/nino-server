@@ -36,7 +36,7 @@ from rest_framework.response import Response
 
 ner = NERRecognizer()
 keyphrase_extractor = KeyPhraseExtractor()
-abbyy = AbbyyRepository("nino_batu", "nRYRO0U1yeElxbzvSxHNKYW4")
+abbyy = AbbyyRepository("besti_app", "gfx+sn7HLv4+DrA7O3upeqry")
 wikifier = Wikifier()
 mpix = MathpixRepository()
 gcloud = GCloudRepository()
@@ -50,31 +50,26 @@ def analyze_text(request):
     
     
     keyphrases = keyphrase_extractor.get_keyphrases(text)
-
-    for kp in keyphrases:
-        kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
-
-    res = {}
-    res["keyphrases"] = keyphrases
-
-    res["entities"] = ner.get_ner_entities(text)
-
+    ner_entities = ner.get_ner_entities(text)
+    
+    entities = ner_entities + keyphrases
+    
+    entities.sort(key=lambda x: -len(x))
+    
     entitylist = []
     
-    for kp in res["keyphrases"]:
-        entitylist.append(kp["keyphrase"].title())
+    for entity in entities:
+        e = entity["text"]
+        if not any(e in ex for ex in entitylist):
+            entitylist.append(e)
+
     
-    entitylist.sort(key=lambda x: -len(x))
+    questions = question_generator.generate_questions(text, entitylist)
     
-    res["entitylist"] = []
-    for e in entitylist:
-        if not any(e in ex for ex in res["entitylist"]):
-            res["entitylist"].append(e)
-    
-    for e in res["entities"]:
-        res["entitylist"].append(e["text"].title())
-    
-    res["entitylist"] = list(set(res["entitylist"]))
+    res = {
+        "entitylist": entitylist,
+        "questions": questions
+    }
     
     return Response(res)
 
@@ -82,8 +77,9 @@ def analyze_text(request):
 def generate_questions(request):
     request_dict = dict(request.data)
     text = request_dict["text"]
+    entities = request_dict["entities"]
     
-    res = question_generator.generate_questions(text)
+    res = question_generator.generate_questions(text, entities)
     
     return Response(res)
 
@@ -124,29 +120,29 @@ class NoteList(mixins.ListModelMixin,
         image_path = dir_notes + 'original_images/' + initial_image_str.replace(" ", "_")
         lines, images, paragraphs = abbyy.process_image(source_image_path=image_path)
         
-        lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
+        # lines, images, paragraphs, equations, tables, figures = mpix.process_image(img_path=image_path, jres=(lines, images, paragraphs))
 
-        images = gcloud.append_image_labels(image_path, images)
+        # images = gcloud.append_image_labels(image_path, images)
 
 
         req.__dict__['data']['lines'] = lines
         req.__dict__['data']['images'] = images
         req.__dict__['data']['paragraphs'] = paragraphs
 
-        req.__dict__['data']['equations'] = equations
-        req.__dict__['data']['tables'] = tables
-        req.__dict__['data']['figures'] = figures
+        # req.__dict__['data']['equations'] = equations
+        # req.__dict__['data']['tables'] = tables
+        # req.__dict__['data']['figures'] = figures
         
-        all_text = "\n".join([par["text"] for par in paragraphs])
+        # all_text = "\n".join([par["text"] for par in paragraphs])
         
 
-        keyphrases = keyphrase_extractor.get_keyphrases(all_text)
+        # keyphrases = keyphrase_extractor.get_keyphrases(all_text)
         
-        for kp in keyphrases:
-            kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
+        # for kp in keyphrases:
+        #    kp["info"] = wikifier.get_entity_info(kp["keyphrase"])
         
-        req.__dict__["data"]["keyphrases"] = keyphrases
+        # req.__dict__["data"]["keyphrases"] = keyphrases
         
-        req.__dict__["data"]["entities"] = ner.get_ner_entities(all_text)
+        # req.__dict__["data"]["entities"] = ner.get_ner_entities(all_text)
         
         return req

@@ -3,6 +3,8 @@
 # Given dictionary jres with lines, images, equations etc., call LatexExporter().export(jres, out) to write tex file to out
 
 import io
+import os
+import os.path
 
 class LatexExporter:
     def __init__(self):
@@ -13,6 +15,7 @@ class LatexExporter:
 
 \\usepackage[absolute]{textpos}
 \\usepackage{amsmath}
+\\usepackage[utf8]{inputenc}
 
 \\setlength{\\TPHorizModule}{30mm}
 \\setlength{\\TPVertModule}{\TPHorizModule}
@@ -42,7 +45,7 @@ class LatexExporter:
         jres: dictionary containing lines, images, equations etc. keys
         out: output file path'''
         
-        ppi = 300 # assumed for now, later calculate from image by fitting text into A4 size
+        ppi = 300 # assumed for now, later calculate from image by fitting image into A4 size
         
         with (open(out, 'w') if out else io.StringIO()) as f:
             f.write(self.header)
@@ -58,7 +61,7 @@ class LatexExporter:
             if not out:
                 return f.getvalue()
                 
-    def guard(self, text):
+    def guard(self, text): # TODO remove unicode characters
         'Guard special characters in string'
         for c, s in self.replace:
             text = text.replace(c, s)
@@ -74,4 +77,21 @@ class LatexExporter:
         f.write(text)
         f.write('\n\\end{textblock}\n')
             
+class PDFExporter:
+    def __init__(self):
+        self.latexp = LatexExporter()
+
+    def export(self, jres, out):
+        if out[-4:] == '.pdf':
+            out = out[:-4]
         
+        self.latexp.export(jres, out + '.tex')
+        
+        dirname = os.path.dirname(out)
+        os.system('rm -f %s.pdf' % out)
+        os.system('latexmk -pdf -f -quiet -outdir=%s %s' % (dirname, out))
+        os.system('latexmk -pdf -c -outdir=%s %s' % (dirname, out))
+        
+        # TODO check if pdf created normally
+        
+        return out + '.pdf'
