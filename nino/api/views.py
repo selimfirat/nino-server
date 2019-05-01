@@ -36,7 +36,7 @@ from rest_framework.response import Response
 
 ner = NERRecognizer()
 keyphrase_extractor = KeyPhraseExtractor()
-abbyy = AbbyyRepository("best_app_joni", "n/8X7Y0xPR8g1GwhUOfqiRIM")
+abbyy = AbbyyRepository("BRAN_APP", "/+Q9Psu2u6Z3isnpaQ9Xy4HB")
 wikifier = Wikifier()
 # mpix = MathpixRepository()
 # gcloud = GCloudRepository()
@@ -48,8 +48,10 @@ def analyze_text(request):
     request_dict = dict(request.data)
     text = "".join(request_dict["text"])
     print("printing text:", text)
-    # text = text.replace("\n", " ")
-    # text = re.sub("[^a-zA-Z0-9_\s]", "", text)
+    text = text.replace(".", " . ")
+    text = text.replace("\n", " . ")
+    text = re.sub("[^a-zA-Z0-9_\s\.]", "", text)
+    text = re.sub(' +', ' ', text)
     
     
     keyphrases = keyphrase_extractor.get_keyphrases(text)
@@ -83,6 +85,22 @@ def generate_questions(request):
     text = request_dict["text"]
     
     res = question_generator.generate_questions(text)
+    
+    return Response(res)
+
+@api_view(['POST'])
+def export_pdf(request):
+    request_dict = dict(request.data)
+    text = request_dict['text']
+    fname = 'notes/export/temp' # TODO later use name of file
+    
+    pdfexp = PDFExporter()
+    pdfexp.export(text, fname)
+    
+    res = {
+        'latex': open(fname + '.tex', 'rb').read(),
+        'pdf':   open(fname + '.pdf', 'rb').read()
+    }
     
     return Response(res)
 
