@@ -65,7 +65,7 @@ class AbbyyRepository:
         
         jres = self.xml_to_json(target_file_path)
 
-        # os.remove(target_file_path)
+        os.remove(target_file_path)
         
         return jres
 

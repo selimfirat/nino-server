@@ -13,10 +13,10 @@ class QuestionGenerator:
                     ("answer", answer)
                 )
                 question = requests.get("http://localhost:5004/api/generate", params=payload).text.replace(" <\Sent>", "").replace(" &lt;/Sent&gt;", "")
-
-                questions.append({
-                    "question": question,
-                    "answer": answer
-                })
+                if answer.lower() not in question:
+                    questions.append({
+                        "question": question,
+                        "answer": answer
+                    })
 
         return questions
