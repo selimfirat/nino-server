@@ -34,7 +34,9 @@ urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls')),
     path('api/notes/', views.NoteList.as_view()),
     path('api/analyze_text/', views.analyze_text),
+    path('api/analyze_text_questions/', views.analyze_text_questions),
     path('api/generate_questions/', views.generate_questions),
+    path('api/export_pdf/', views.export_pdf),
     url(r'^api/docs/', include_docs_urls(title='Nino API Documentation')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

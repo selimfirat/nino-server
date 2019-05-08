@@ -30,21 +30,55 @@ import re
 from .abbyy_repository import AbbyyRepository
 from .gcloud import GCloudRepository
 from .mathpix import MathpixRepository
+from .export import PDFExporter
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 ner = NERRecognizer()
 keyphrase_extractor = KeyPhraseExtractor()
-abbyy = AbbyyRepository("BRAN_APP", "/+Q9Psu2u6Z3isnpaQ9Xy4HB")
+abbyy = AbbyyRepository("ORGRIMMAR", "rup4XXa5j7dF419iuT4dp7C+")
 wikifier = Wikifier()
 # mpix = MathpixRepository()
 # gcloud = GCloudRepository()
 question_generator = QuestionGenerator()
+pdfexp = PDFExporter()
 
 
 @api_view(['POST'])
 def analyze_text(request):
+    request_dict = dict(request.data)
+    text = "".join(request_dict["text"])
+    print("printing text:", text)
+    text = text.replace(".", " . ")
+    text = text.replace("\n", " . ")
+    text = re.sub("[^a-zA-Z0-9_\s\.]", "", text)
+    text = re.sub(' +', ' ', text)
+    
+    
+    keyphrases = keyphrase_extractor.get_keyphrases(text)
+    ner_entities = ner.get_ner_entities(text)
+    
+    entities = ner_entities + keyphrases
+    
+    entities.sort(key=lambda x: -len(x))
+    
+    entitylist = []
+    
+    for entity in entities:
+        e = entity["text"]
+        if not any(e in ex for ex in entitylist):
+            entitylist.append(e)
+    
+    res = {
+        "entitylist": entitylist,
+    }
+    
+    return Response(res)
+
+
+@api_view(['POST'])
+def analyze_text_questions(request):
     request_dict = dict(request.data)
     text = "".join(request_dict["text"])
     print("printing text:", text)
@@ -90,16 +124,19 @@ def generate_questions(request):
 
 @api_view(['POST'])
 def export_pdf(request):
+    def read_file(fname):
+        with open(fname, 'rb') as f:
+            res = f.read()
+        return res
     request_dict = dict(request.data)
-    text = request_dict['text']
+    # text = request_dict['text']
     fname = 'notes/export/temp' # TODO later use name of file
     
-    pdfexp = PDFExporter()
-    pdfexp.export(text, fname)
+    pdfexp.export(request_dict, fname)
     
     res = {
-        'latex': open(fname + '.tex', 'rb').read(),
-        'pdf':   open(fname + '.pdf', 'rb').read()
+        'latex': read_file(fname + '.tex'),
+        'pdf':   read_file(fname + '.pdf')
     }
     
     return Response(res)
