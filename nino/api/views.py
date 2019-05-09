@@ -185,7 +185,7 @@ class NoteList(mixins.ListModelMixin,
 
         # req.__dict__['data']['lines'] = lines
         req.__dict__["data"]["page"] = page
-        req.__dict__['data']['images'] = images
+        req.__dict__['data']['images'] = [] # images
         req.__dict__['data']['paragraphs'] = paragraphs
 
         # req.__dict__['data']['equations'] = equations
